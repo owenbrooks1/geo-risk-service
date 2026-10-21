@@ -51,7 +51,7 @@ Each component is built in stages. Each stage follows these steps:
 5. `/defend`: explain the change so the owner can defend every meaningful part.
 6. `/close-stage`: verify, review, draft evidence, propose the commit message.
 7. The owner reviews the evidence and approves the commit.
-8. `/integrate <component>` (lead session): merge to `main` and verify there.
+8. The commit lands on `main`. Then `/start` the next component. (`/integrate` is only for a component built on its own branch, which this project does not do; see Sessions.)
 
 ## Staying on track
 
@@ -62,15 +62,15 @@ Each component is built in stages. Each stage follows these steps:
 
 ## Changing documents
 
-- **Harness files** (`AGENTS.md` and everything under `.claude/`) change only with owner approval, and only in the lead session on `main`. Component sessions propose changes; they do not make them.
+- **Harness files** (`AGENTS.md` and everything under `.claude/`) change only with owner approval, and only on `main`.
 - **Other documents** (plans, status, README and evidence facts) are kept up to date as work happens. Each update is reported to the owner in one line.
 
-## Parallel sessions
+## Sessions
 
-- The **lead session** works on `main`. It builds shared contracts, runs checkpoints and merges component branches.
-- Each **component session** is started with `claude -w <component>`, which gives it its own git worktree and branch.
-- Shared contracts (schema, data models, config) are built on `main` before work splits, so components do not collide.
-- A component session edits only the paths it owns in `docs/components.md`. If it needs a change elsewhere, it asks the lead session.
+- One **lead session** builds every component, one after another, on `main`, in the order set in `docs/components.md`. At this size, parallel worktrees would cost more in merging than they save.
+- Shared contracts (schema, data models, config) are built first, so later components build on fixed shapes.
+- Each stage edits only the paths its component owns in `docs/components.md`. A change to another component's paths, or to the contracts, is raised with the owner first and noted in the stage's plan.
+- Parallel worktrees (`claude -w <component>` and `/integrate`) remain available if the owner chooses them, but are not used.
 
 ## Where things live
 

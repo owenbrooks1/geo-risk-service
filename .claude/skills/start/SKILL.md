@@ -9,8 +9,8 @@ disable-model-invocation: true
 
 The component name is in the arguments. If none was given, ask.
 
-1. **Check the session.** Confirm the current branch and worktree. A component session should be in its own worktree (started with `claude -w <component>`). Contract work on `main` is the exception. If it looks wrong, say so and stop.
-2. **Check readiness.** Read `AGENTS.md` and `docs/components.md`. If anything this component depends on is not yet merged to `main`, stop and say what is missing.
+1. **Check the session.** Confirm the current branch. Components are built one after another on `main` (see Sessions in `AGENTS.md`). If the session is on another branch or in a worktree, say so and stop.
+2. **Check readiness.** Read `AGENTS.md` and `docs/components.md`. If anything this component depends on is not yet done on `main`, stop and say what is missing.
 3. **Read the criteria.** Read `evidence/intent.md` for the AC IDs this component covers and `evidence/decisions.md` for decisions already made. Do not re-open settled decisions.
 4. **Enter plan mode.** Draft the plan:
    - the goal, the paths to be touched and the paths not to touch;
