@@ -17,5 +17,5 @@ Source paths are under `src/geo_risk_service/`. Generated data goes in `data/` (
 
 - **Order:** contracts, generator, assessment, service. Each is built one after another on `main` in the lead session, one stage per commit. No parallel worktrees: at this size the merge overhead costs more than it saves.
 - **Hard stop at 2:30 elapsed:** no new features after this point. The remaining time is for the independent review, the evidence pack, the README and a clean-checkout run.
-- **Cut order if behind** (first cut first): AC-22, AC-21, AC-19, AC-20, then any STRETCH item.
+- **Cut order if behind** (first cut first): any STRETCH item, then AC-22, AC-21, AC-19, AC-20.
 - **Never cut:** the end-to-end demo, abstention, truth isolation, the point-in-time IP check, guarded failures, the tests citing them, the evidence pack and incremental commits.
