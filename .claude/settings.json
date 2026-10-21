@@ -1,0 +1,24 @@
+{
+  "plansDirectory": "docs/plans",
+  "permissions": {
+    "allow": [
+      "Bash(make verify)",
+      "Bash(uv run pytest *)",
+      "Bash(uv run ruff *)",
+      "Bash(git diff *)",
+      "Bash(git log *)"
+    ],
+    "ask": [
+      "Bash(uv add *)",
+      "Bash(uv remove *)",
+      "Bash(pip install *)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "WebFetch",
+      "WebSearch",
+      "Bash(git commit *)",
+      "Bash(git push *)",
+      "Bash(git merge *)"
+    ]
+  }
+}

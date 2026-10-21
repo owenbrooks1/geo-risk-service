@@ -1,0 +1,15 @@
+context/
+
+# Python and tooling
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Local runtime data (regenerated from seed)
+*.duckdb
+*.duckdb.wal
+
+# Parallel session worktrees
+.claude/worktrees/
