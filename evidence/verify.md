@@ -12,7 +12,7 @@
 | `tests/test_package.py::test_package_imports` | Harness only | `make verify` runs real tests against the installed package. It does not cover any AC or INV rule. | Green |
 | Commit gate (`.claude/hooks/verify_before_commit.py`) | Stage done only when verify passes | An agent `git commit` is blocked when its message breaks the conventions or verify fails. Shown by adding an unused import: the hook exited 2 with the lint failure; after revert it exited 0. Non-commit commands pass without running verify. | Green |
 | `tests/test_commit_gate.py` (25 known-answer cases) | Commit conventions in `AGENTS.md` | Good messages pass. Each convention rejects a message that breaks it: multi-line, over 72 characters, emoji, attribution, full stop, lower-case start, too vague, not imperative. The message is read correctly from the supported command forms; message files, heredocs and multiple `-m` are blocked; non-commit commands are ignored. | Green |
-| CI (`.github/workflows/verify.yml`) | Same check off the developer machine | The pushed code passes `make verify` on a clean machine from the lock file. | Pending first push |
+| CI (`.github/workflows/verify.yml`) | Same check off the developer machine | The pushed code passes `make verify` on a clean machine from the lock file. First run on `a934734`: lint, format and 26 tests passed. | Green |
 
 ## Known gaps
 
