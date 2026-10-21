@@ -8,7 +8,15 @@ To be completed.
 
 ## Configuration and secrets
 
+- `config/policy.yaml`: decision rules (`version`, `max_speed_kmh`); every assessment records the version.
+- `config/settings.yaml`: seed, sizes and paths; logged in the run summary.
+- No secrets are needed; the slice uses synthetic local data only.
+
 ## Failure modes
+
+| Failure | Behaviour | Criterion |
+|---|---|---|
+| Config file missing or invalid | Run stops with `ConfigError` naming the file and every problem | AC-11 |
 
 ## Rollback and degrade
 

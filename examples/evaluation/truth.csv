@@ -1,0 +1,7 @@
+login_id,suspicious,scenario
+E-01,true,impossible_jump
+E-02,false,genuine_travel
+E-03,false,normal
+E-04,false,normal
+E-05,false,genuine_travel
+E-06,true,impossible_jump

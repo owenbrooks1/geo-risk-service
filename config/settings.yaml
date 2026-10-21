@@ -1,0 +1,6 @@
+# Run settings. Logged in the run summary; not part of the policy.
+seed: 42
+customers: 100
+days: 30
+data_dir: data
+db_path: data/results.duckdb

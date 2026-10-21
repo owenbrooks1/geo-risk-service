@@ -39,6 +39,14 @@ Source paths are under `src/geo_risk_service/`. A change to the contracts during
   - Two rows for the same IP in force at the same moment are a reference-data fault, and the run stops. Implemented in assessment's `ingest.py`. AC-11's known answer is extended to cover it.
   - Fixture IPs use the ranges reserved for documentation (192.0.2.0/24, 198.51.100.0/24, 203.0.113.0/24), so they can never be real hosts (INV-1).
 
+- **Owner decisions while writing tests:**
+  - When two logins for one customer share a timestamp, the "previous" one is the one with the lower `login_id`. It's simple, deterministic and stated (AC-08 fixture `L-0801` and `L-0802`).
+  - Rejection reason codes are `missing_value`, `invalid_ip`, `missing_timezone`, `duplicate_login_id` and `invalid_value` (AC-09).
+
+- **Found during `/defend`:**
+  - Times are stored in DuckDB as plain `TIMESTAMP` values holding UTC, converted at the boundary. DuckDB's timezone-aware type needed an extra library (`pytz`) and followed the machine's local time zone, so it would have broken INV-4.
+  - Mobile IPs count as reliable; only hosting abstains. Mobile carriers often geolocate to a distant gateway city, so mobile rows should carry a large accuracy radius. Imprecision is handled by the radius in the data, not by a separate rule.
+
 ## Data models (`models.py`, pydantic)
 - **Enums:**
   - `ConnectionType`: residential, mobile, hosting.

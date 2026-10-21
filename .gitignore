@@ -13,3 +13,6 @@ __pycache__/
 
 # Parallel session worktrees
 .claude/worktrees/
+
+# Generated run data
+data/

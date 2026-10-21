@@ -1,0 +1,5 @@
+line,login_id,reason
+3,B-02,missing_value
+4,B-03,invalid_ip
+5,B-04,missing_timezone
+6,B-01,duplicate_login_id

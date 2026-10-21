@@ -1,0 +1,21 @@
+login_id,ac,decision,reason,min_speed_kmh,max_speed_kmh,note
+L-0201,AC-05,abstain,no_baseline,,,first login for C-02
+L-0202,AC-02,flag,impossible_travel,16943.9,17043.9,Sydney to London in 1 hour
+L-0301,AC-05,abstain,no_baseline,,,first login for C-03
+L-0302,AC-03,clear,possible_travel,331.7,381.7,Sydney to Melbourne in 2 hours
+L-0401,AC-05,abstain,no_baseline,,,first login for C-04
+L-0402,AC-04,abstain,inconclusive,884.6,1017.9,Sydney to Melbourne in 45 minutes: range crosses 1000
+L-0501,AC-05,abstain,no_baseline,,,only login for C-05
+L-0601,AC-05,abstain,no_baseline,,,first login for C-06
+L-0602,AC-06,abstain,unreliable_ip,,,hosting IP
+L-0603,AC-06,flag,impossible_travel,16943.9,17043.9,compared with L-0601 not the VPN login
+L-0701,AC-05,abstain,no_baseline,,,baseline for C-07A
+L-0702,AC-07,abstain,no_ip_location,,,mapping starts 1 second after the login
+L-0711,AC-05,abstain,no_baseline,,,baseline for C-07B
+L-0712,AC-07,clear,possible_travel,0.0,50.8,11:59 uses the Sydney mapping
+L-0721,AC-05,abstain,no_baseline,,,baseline for C-07C
+L-0722,AC-07,flag,impossible_travel,16943.9,17043.9,12:00 uses the London mapping (start inclusive)
+L-0801,AC-05,abstain,no_baseline,,,first of two logins at the same time; ties broken by login_id
+L-0802,AC-08,flag,impossible_travel,,,same time in Sydney and London
+L-0811,AC-05,abstain,no_baseline,,,first of two logins at the same time
+L-0812,AC-08,abstain,inconclusive,,,same time and same IP

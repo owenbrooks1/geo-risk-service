@@ -1,0 +1,3 @@
+# Decision rules. Every assessment records this version.
+version: v1
+max_speed_kmh: 1000

@@ -6,7 +6,7 @@ Status values: planned, in progress, done.
 
 | Component | Owned paths | Depends on | Branch | Status | Criteria |
 |---|---|---|---|---|---|
-| contracts | `models.py`, `config.py`, `schema.py`, `config/`, `examples/`, `tests/test_contracts.py`, `tests/conftest.py` | - | `main` | in progress | shared by all; config and model parts of AC-09, AC-11 |
+| contracts | `models.py`, `config.py`, `schema.py`, `config/`, `examples/`, `tests/test_contracts.py`, `tests/conftest.py` | - | `main` | done | shared by all; config and model parts of AC-09, AC-11 |
 | generator | `generator.py`, `tests/test_generator.py` | contracts | `main` | planned | AC-01 |
 | assessment | `ingest.py`, `geo.py`, `enrichment.py`, `policy.py`, with matching `tests/test_*.py` | contracts | `main` | planned | AC-02 to AC-12 |
 | service | `evaluation.py`, `run.py`, `api.py`, with matching tests; `Makefile` `demo` and `serve` targets; README run section | generator, assessment | `main` | planned | AC-13 to AC-18; ENHANCE AC-19 to AC-22 |
