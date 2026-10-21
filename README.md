@@ -1,6 +1,6 @@
 # Geospatial Risk Intelligence Service
 
-A small, locally runnable service that derives explainable geospatial risk evidence from synthetic digital-access and physical-location events, using Python, DuckDB and FastAPI.
+A small, locally runnable service that checks each login for impossible travel, using only the IP location evidence available at that moment. It explains every decision and abstains when the evidence is weak. Built with Python, DuckDB and FastAPI, on synthetic data only.
 
 **Status:** in progress. Run instructions will be added as the slice is built.
 
