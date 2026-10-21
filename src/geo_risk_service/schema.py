@@ -57,5 +57,6 @@ def from_db_time(value: datetime) -> datetime:
 
 
 def create_tables(con: duckdb.DuckDBPyConnection) -> None:
+    """Create the results tables if they do not exist yet."""
     con.execute(ASSESSMENTS)
     con.execute(RUN_SUMMARY)

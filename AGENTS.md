@@ -33,6 +33,8 @@ These never bend. Tests, reviews and evidence cite them by ID.
 - No new dependencies without owner approval.
 - No scope expansion. Build what the current stage's criteria ask for, and list anything else as a suggestion.
 - Prefer the simplest design the owner can explain and defend.
+- Every function and class has a short docstring saying what it does, and why where that is not obvious. Test functions are exempt when their name and AC or INV ID already say what they check.
+- Add brief comments where the logic is not obvious: say why, not what, in plain words. Keep them short; do not restate the code.
 
 ## Scope bands
 

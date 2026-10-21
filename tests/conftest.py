@@ -13,4 +13,5 @@ def examples() -> Path:
 
 @pytest.fixture
 def config_dir() -> Path:
+    """The real config files in config/."""
     return ROOT / "config"

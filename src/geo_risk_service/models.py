@@ -22,18 +22,24 @@ from pydantic import (
 
 
 class ConnectionType(StrEnum):
+    """What kind of network an IP belongs to. Hosting means a data centre (VPN)."""
+
     RESIDENTIAL = "residential"
     MOBILE = "mobile"
     HOSTING = "hosting"
 
 
 class Decision(StrEnum):
+    """The three possible outcomes for a login."""
+
     FLAG = "flag"
     CLEAR = "clear"
     ABSTAIN = "abstain"
 
 
 class Reason(StrEnum):
+    """Why a decision was reached. Every assessment carries exactly one."""
+
     IMPOSSIBLE_TRAVEL = "impossible_travel"
     POSSIBLE_TRAVEL = "possible_travel"
     INCONCLUSIVE = "inconclusive"
@@ -43,6 +49,8 @@ class Reason(StrEnum):
 
 
 class RejectReason(StrEnum):
+    """Why an input row was rejected at load (AC-09)."""
+
     MISSING_VALUE = "missing_value"
     INVALID_IP = "invalid_ip"
     MISSING_TIMEZONE = "missing_timezone"
@@ -51,6 +59,8 @@ class RejectReason(StrEnum):
 
 
 class Scenario(StrEnum):
+    """Which planted situation produced a login. Truth only (INV-5)."""
+
     NORMAL = "normal"
     GENUINE_TRAVEL = "genuine_travel"
     IMPOSSIBLE_JUMP = "impossible_jump"
@@ -58,18 +68,24 @@ class Scenario(StrEnum):
 
 
 def _blank_to_none(value):
+    """Treat an empty CSV cell as "no value"."""
     return None if value == "" else value
 
 
 def _to_utc(value: datetime) -> datetime:
+    """Convert a time with any stated offset to UTC (INV-4)."""
     return value.astimezone(UTC)
 
 
+# Reusable field types: non-empty text, and a time that must state its offset
+# and is stored in UTC.
 Text = Annotated[str, Field(min_length=1)]
 UtcTime = Annotated[AwareDatetime, AfterValidator(_to_utc)]
 
 
 class Login(BaseModel):
+    """One login: who, when (UTC) and from which IP address."""
+
     login_id: Text
     customer_id: Text
     event_time: UtcTime
@@ -93,6 +109,7 @@ class IpLocation(BaseModel):
 
     @model_validator(mode="after")
     def _window_is_positive(self):
+        """Reject a mapping that ends at or before it starts."""
         if self.valid_to is not None and self.valid_to <= self.valid_from:
             raise ValueError("valid_to must be after valid_from")
         return self

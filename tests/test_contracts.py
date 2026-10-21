@@ -27,11 +27,13 @@ DOC_RANGES = [
 
 
 def read_csv(path):
+    """Read a CSV file as a list of dicts, one per row."""
     with open(path, newline="") as f:
         return list(csv.DictReader(f))
 
 
 def write(tmp_path, text):
+    """Write a throwaway config file and return its path."""
     path = tmp_path / "config.yaml"
     path.write_text(text)
     return path
@@ -80,6 +82,7 @@ def test_ac11_zero_customers_stops(tmp_path):
 
 
 def login(**overrides):
+    """Build a valid Login, changing only the given fields."""
     row = {
         "login_id": "L-1",
         "customer_id": "C-1",
@@ -114,6 +117,7 @@ def test_inv4_offset_converted_to_utc():
 
 
 def ip_location(**overrides):
+    """Build a valid IpLocation, changing only the given fields."""
     row = {
         "ip": "203.0.113.10",
         "lat": -33.8688,

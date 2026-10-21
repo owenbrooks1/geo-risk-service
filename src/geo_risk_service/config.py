@@ -13,6 +13,7 @@ class ConfigError(Exception):
 
 
 def _load(path: Path, model: type[BaseModel]) -> BaseModel:
+    """Read a YAML file and validate it against a model, or raise ConfigError."""
     path = Path(path)
     if not path.is_file():
         raise ConfigError(f"config file not found: {path}")
@@ -22,6 +23,7 @@ def _load(path: Path, model: type[BaseModel]) -> BaseModel:
     try:
         return model.model_validate(data)
     except ValidationError as error:
+        # List every problem at once, so one fix-and-rerun is enough.
         problems = "; ".join(
             f"{'.'.join(map(str, e['loc']))}: {e['msg']}" for e in error.errors()
         )
@@ -29,8 +31,10 @@ def _load(path: Path, model: type[BaseModel]) -> BaseModel:
 
 
 def load_policy(path: Path) -> Policy:
+    """Load the versioned decision rules (config/policy.yaml)."""
     return _load(path, Policy)
 
 
 def load_settings(path: Path) -> Settings:
+    """Load the run settings (config/settings.yaml)."""
     return _load(path, Settings)
