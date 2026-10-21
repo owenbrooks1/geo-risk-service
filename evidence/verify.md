@@ -14,6 +14,9 @@
 | `tests/test_commit_gate.py` (25 known-answer cases) | Commit conventions in `AGENTS.md` | Good messages pass. Each convention rejects a message that breaks it: multi-line, over 72 characters, emoji, attribution, full stop, lower-case start, too vague, not imperative. The message is read correctly from the supported command forms; message files, heredocs and multiple `-m` are blocked; non-commit commands are ignored. | Green |
 | `tests/test_contracts.py` (19 tests) | AC-09 and AC-11 (model and config parts), INV-1, INV-4, INV-6 contract | Config loads, or stops with an error naming the file and every problem. Login rows need an offset time and a real IP; offsets convert to UTC. IP mapping windows are well formed. Results table matches the `Assessment` model. Times round-trip through DuckDB as UTC whatever the local zone. Fixtures parse, cover AC-02 to AC-08, and use documentation-only IPs. It does not prove any decision is correct; that is the assessment stage. | Green |
 | Mutation: time storage (INV-4) | INV-4 | Switching `run_summary.run_at` back to `TIMESTAMPTZ` made the round-trip test fail with a missing `pytz` error; reverted, verify green. | Done |
+| `tests/test_generator.py` | AC-01, INV-1, INV-3, INV-4, INV-5 | Same seed gives byte-identical files and a recorded checksum computed in a separate process; another seed differs. One truth label per login; only planted jumps are suspicious. All four scenarios appear from 4 customers. Every IP is a documentation address; times are UTC. No truth in the inputs. On four seeds, using a distance formula written in the test: every jump is at least 3,000 km in 30 to 90 minutes, and every genuine non-VPN login, including travel and the login after a jump, is reachable at 1,000 km/h with both radii added. | Green |
+| Mutation: truth leak (INV-5) | INV-5 | Adding `suspicious` to `logins.csv` made `test_inv5_truth_is_not_in_the_inputs` fail; reverted, verify green. | Done |
+| Independent review: generator | INV-1 to INV-8 | No rule breaches. Six test and robustness weaknesses found and fixed: label check, per-scenario check counts, cross-process checksum and Python pin, one-day fallback spacing, docstring overclaim, UTC check on IP times. | Done |
 | CI (`.github/workflows/verify.yml`) | Same check off the developer machine | The pushed code passes `make verify` on a clean machine from the lock file. First run on `a934734`: lint, format and 26 tests passed. | Green |
 
 ## Known gaps
@@ -22,6 +25,11 @@
 - The commit gate covers commits made by the agent only. Commits the owner makes in their own terminal are not gated; CI is the backstop.
 - The imperative-mood check only catches common past and present forms ("Added", "Adding"); it cannot prove a verb is imperative.
 - The gate matches `git ... commit` by pattern. An unusual command form could slip past it; CI still catches the failure after push.
+
+- AC-14 is met by construction on generated data: every generated login is clearly a flag, clearly a clear, or VPN, so the `inconclusive` path is never reached there. That path is covered by the hand-written fixtures (AC-04), not by generated data.
+- The generator spaces genuine logins for 1,000 km/h, the same figure as policy v1. It deliberately does not read the policy. A lower threshold could make some genuine trips abstain.
+- Byte-identical generated output is promised on Python 3.12 only (`.python-version`); Python does not promise identical random sequences across versions.
+- Trips near the end of the period can run a few days past the 30-day window. Harmless; nothing assumes the window.
 
 ## Local versus pull request versus pipeline
 

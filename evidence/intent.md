@@ -61,7 +61,7 @@ Tests cite these IDs. Fixtures are small hand-written cases in `examples/`, with
 
 | ID | Band | Criterion | Known answer | Status |
 |---|---|---|---|---|
-| AC-01 | CORE | Generated data is deterministic and complete (INV-1, INV-3) | Seed 42 twice gives identical data; seed 43 differs. Every login has exactly one truth label in a separate truth table. Normal, genuine travel, impossible jump and VPN scenarios each appear. | agreed |
+| AC-01 | CORE | Generated data is deterministic and complete (INV-1, INV-3) | Seed 42 twice gives identical data; seed 43 differs. Every login has exactly one truth label in a separate truth table. Normal, genuine travel, impossible jump and VPN scenarios each appear. | built |
 | AC-02 | CORE | Impossible travel flags | Sydney to London, 1 hour: flag, speed range 16,944 to 17,044 km/h. | agreed |
 | AC-03 | CORE | Possible travel clears | Sydney to Melbourne, 2 hours: clear, speed range 332 to 382 km/h. | agreed |
 | AC-04 | CORE | Imprecise evidence abstains (INV-7) | Sydney to Melbourne, 45 minutes: abstain `inconclusive`, speed range 885 to 1,018 km/h. | agreed |
