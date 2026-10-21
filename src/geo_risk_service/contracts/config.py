@@ -5,7 +5,7 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, ValidationError
 
-from geo_risk_service.models import Policy, Settings
+from geo_risk_service.contracts.models import Policy, Settings
 
 
 class ConfigError(Exception):

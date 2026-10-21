@@ -8,8 +8,8 @@ import duckdb
 import pytest
 from pydantic import ValidationError
 
-from geo_risk_service.config import ConfigError, load_policy, load_settings
-from geo_risk_service.models import (
+from geo_risk_service.contracts.config import ConfigError, load_policy, load_settings
+from geo_risk_service.contracts.models import (
     Assessment,
     Decision,
     IpLocation,
@@ -18,7 +18,7 @@ from geo_risk_service.models import (
     RejectReason,
     Truth,
 )
-from geo_risk_service.schema import create_tables, from_db_time, to_db_time
+from geo_risk_service.contracts.schema import create_tables, from_db_time, to_db_time
 
 DOC_RANGES = [
     ipaddress.ip_network(n)

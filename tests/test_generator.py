@@ -13,8 +13,8 @@ from math import asin, cos, radians, sin, sqrt
 
 import pytest
 
-from geo_risk_service.generator import generate, write_dataset
-from geo_risk_service.models import IpLocation, Login, Scenario, Truth
+from geo_risk_service.contracts.models import IpLocation, Login, Scenario, Truth
+from geo_risk_service.generator.synthetic import generate, write_dataset
 
 DOC_RANGES = [
     ipaddress.ip_network(n)

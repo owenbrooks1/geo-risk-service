@@ -13,7 +13,13 @@ from math import asin, cos, radians, sin, sqrt
 from pathlib import Path
 from random import Random
 
-from geo_risk_service.models import ConnectionType, IpLocation, Login, Scenario, Truth
+from geo_risk_service.contracts.models import (
+    ConnectionType,
+    IpLocation,
+    Login,
+    Scenario,
+    Truth,
+)
 
 # Fixed start date, so output never depends on when the generator runs (INV-3).
 START = datetime(2026, 5, 1, tzinfo=UTC)
