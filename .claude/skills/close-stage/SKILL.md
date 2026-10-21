@@ -25,7 +25,7 @@ Run these steps in order. Stop and report if any step fails.
    - `evidence/design.md`: changes to components or data flow;
    - `evidence/intent.md`: criteria status;
    - `docs/components.md`: status.
-6. **Propose the commit.** List the files to stage by name. Give a single short message line with no attribution lines.
+6. **Propose the commit.** List the files to stage by name. Give a message that follows the conventions in the Commits section of `AGENTS.md`. Use the component name as the prefix for component work.
 7. **Stop.** Tell the owner the stage is ready for their evidence review and commit approval. Do not commit until they approve.
 
 End with the suggested next step: owner evidence review and commit, then `/integrate <component>` in the lead session.

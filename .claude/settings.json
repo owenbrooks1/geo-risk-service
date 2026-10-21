@@ -20,5 +20,18 @@
       "Bash(git push *)",
       "Bash(git merge *)"
     ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run --no-project python \"$CLAUDE_PROJECT_DIR/.claude/hooks/verify_before_commit.py\""
+          }
+        ]
+      }
+    ]
   }
 }

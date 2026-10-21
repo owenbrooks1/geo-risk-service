@@ -2,7 +2,25 @@
 
 A small, locally runnable service that derives explainable geospatial risk evidence from synthetic digital-access and physical-location events, using Python, DuckDB and FastAPI.
 
-**Status:** in progress. Setup, run and verify instructions will be added as the slice is built.
+**Status:** in progress. Run instructions will be added as the slice is built.
+
+## Setup
+
+Requires [uv](https://docs.astral.sh/uv/) and `make`.
+
+```sh
+uv sync
+```
+
+## Verify
+
+```sh
+make verify
+```
+
+Runs lint, format and lock checks, then the tests. The same command runs in CI.
+
+## Links
 
 - Working method and hard rules: [`AGENTS.md`](AGENTS.md)
 - Evidence pack: [`evidence/`](evidence/)

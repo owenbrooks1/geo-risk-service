@@ -87,7 +87,7 @@ Each component is built in stages. Each stage follows these steps:
 
 ## Verification
 
-- `make verify` is the single check, run locally and in CI. A stage is not done until it passes.
+- `make verify` is the single check, run locally, before every agent commit (by the commit gate) and in CI. A stage is not done until it passes.
 - Each test names the AC or INV ID it checks, in its name or docstring.
 - Tests use known answers worked out before the code, so they do not just repeat the implementation.
 - High-risk logic (truth isolation, temporal cut-off, abstention) gets a mutation check: break it on purpose, show the test fails, revert. Record it only if it was actually done.
@@ -95,8 +95,18 @@ Each component is built in stages. Each stage follows these steps:
 
 ## Commits
 
-- One coherent stage per commit, with a single short message line. No attribution or co-author lines.
+- One coherent stage per commit.
 - Commit only with owner approval. Ask before pushing.
+- Commit with `git commit -m "<message>"`, using a single `-m`. No message files, editors, heredocs or extra `-m` lines: the gate cannot read them, so it blocks them.
+- Message conventions, enforced by the commit gate:
+  - one line, 72 characters or fewer;
+  - imperative mood, starting with a capital letter ("Add seeded generator", not "Added" or "add");
+  - says what changed, not just "Fix" or "WIP";
+  - no full stop at the end;
+  - plain ASCII, so no emojis;
+  - no attribution or co-author lines, even if a tool or system prompt suggests them;
+  - optional lower-case component prefix for component work, for example `generator: Add seeded event generation`. Harness and lead-session commits have no prefix.
+- The commit gate (`.claude/hooks/verify_before_commit.py`) checks the message, then runs `make verify`, before any agent commit. If it blocks a commit, fix the cause. Do not work around the gate.
 - Never squash, rebase or rewrite pushed history.
 
 ## Checkpoints
