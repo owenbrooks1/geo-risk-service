@@ -25,5 +25,5 @@ Purpose: find the gaps in a plan before code is written, and make sure every dec
 ## Record the outcomes
 
 - Criteria, known answers and band changes go in `evidence/intent.md`.
-- Decisions with a real trade-off go in `evidence/decisions.md` as a short record: decision, options considered, why, and what it means in production.
+- Decisions go in the component's plan in `docs/plans/`: decision, options considered, why, and what it means in production. Mark any that could be a headline trade-off for `evidence/decisions.md`, which holds 3 to 5 records chosen at the end.
 - Summarise for the owner, in a few lines, what changed in the plan.

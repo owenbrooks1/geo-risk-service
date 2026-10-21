@@ -18,14 +18,15 @@ Run these steps in order. Stop and report if any step fails.
 
    Record it only if it was actually done.
 4. **Defend.** Run the `defend` skill unless it has already been run on this diff.
-5. **Draft evidence updates** for owner review. Update only the files affected by this stage:
+5. **Draft evidence updates** for owner review. Facts only, a line or table row each, following the Evidence pack section of `AGENTS.md`. Update only what this stage changed:
    - `evidence/verify.md`: checks added, what each proves, known gaps;
-   - `evidence/decisions.md`: any new decision records;
-   - `evidence/operate.md`: new failure modes, config, logs;
-   - `evidence/design.md`: changes to components or data flow;
    - `evidence/intent.md`: criteria status;
+   - `evidence/operate.md`: new failure modes, config, logs;
+   - the component's plan in `docs/plans/`: decisions made during the stage;
    - `docs/components.md`: status.
+
+   Do not write narrative prose, add to `evidence/decisions.md` or touch `evidence/agentic-workflow.md`. Those are written at the end.
 6. **Propose the commit.** List the files to stage by name. Give a message that follows the conventions in the Commits section of `AGENTS.md`. Use the component name as the prefix for component work.
-7. **Stop.** Tell the owner the stage is ready for their evidence review and commit approval. Do not commit until they approve.
+7. **Stop.** Tell the owner the stage is ready for their evidence review and commit approval, and remind them to record the stage in their own notes. Do not commit until they approve.
 
 End with the suggested next step: owner evidence review and commit, then `/integrate <component>` in the lead session.

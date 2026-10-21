@@ -58,12 +58,12 @@ Each component is built in stages. Each stage follows these steps:
 - End every reply at a stage boundary with the suggested next step from the stage loop.
 - If the owner asks to skip a step, say once which step and what it protects, then follow the owner's call.
 - If part of this harness is getting in the way or missing something, say so and propose a specific change. Do not quietly work around it.
-- **OWNER DECISION NEEDED:** when a question touches data meaning, risk or acceptance, stop. Give the options and a recommendation, then wait. Record the owner's answer in `evidence/decisions.md`.
+- **OWNER DECISION NEEDED:** when a question touches data meaning, risk or acceptance, stop. Give the options and a recommendation, then wait. Record the owner's answer in the component's plan in `docs/plans/`. Headline trade-offs move to `evidence/decisions.md` at the end (see Evidence pack).
 
 ## Changing documents
 
 - **Harness files** (`AGENTS.md` and everything under `.claude/`) change only with owner approval, and only in the lead session on `main`. Component sessions propose changes; they do not make them.
-- **Other documents** (evidence, plans, status, README) are kept up to date as work happens. Each update is reported to the owner in one line.
+- **Other documents** (plans, status, README and evidence facts) are kept up to date as work happens. Each update is reported to the owner in one line.
 
 ## Parallel sessions
 
@@ -92,6 +92,15 @@ Each component is built in stages. Each stage follows these steps:
 - Tests use known answers worked out before the code, so they do not just repeat the implementation.
 - High-risk logic (truth isolation, temporal cut-off, abstention) gets a mutation check: break it on purpose, show the test fails, revert. Record it only if it was actually done.
 - Never claim a test proves more than it does.
+
+## Evidence pack
+
+The evidence pack in `evidence/` must stay concise: a reviewer should read each file in a few minutes.
+
+- **Per stage, facts only:** check rows and results in `verify.md`, criteria status in `intent.md`, and new failure modes in `operate.md`, a line or table row each. These are the details that are lost or misremembered if left to the end.
+- **At the end, prose:** the narrative in `design.md` and `operate.md`, the choice of 3 to 5 headline records for `decisions.md`, and `agentic-workflow.md`, written from the maintainer's notes with representative excerpts only.
+- Roughly one page per file. Update entries in place rather than adding to them.
+- `decisions.md` holds 3 to 5 short records: decision, options considered, why, and what it means in production. Other decisions stay in the plans in `docs/plans/`.
 
 ## Commits
 

@@ -14,7 +14,7 @@ The owner manages time and scope. This skill turns the current state into a rank
    - `docs/components.md`: status and dependencies.
    - `evidence/intent.md`: criteria status by band.
    - The most recent `make verify` result. Run it if unsure.
-   - Which evidence files are still stubs.
+   - Evidence: whether per-stage facts are up to date, whether any file is longer than about a page, and whether `decisions.md` has more than 5 records. Stub prose sections are expected until the CORE workflow is green; flag them only after that.
 3. **Rank the next actions** in this table:
 
    | Rank | Action | Band | Depends on | Assessment value | Risk to working code |
