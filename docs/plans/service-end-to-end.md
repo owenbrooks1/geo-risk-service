@@ -105,6 +105,15 @@ AC-19 (list filters), AC-20 (`GET /evaluation`), AC-21 (order independence), AC-
   - a test checks read-only access;
   - stored decisions are read in login ID order.
 - The service code was committed (`c071a56`) before close-stage, so the owner could test it by hand.
+- **Owner review, items 6 to 9 (decided 2026-10-22):**
+  - `run_at` is UTC in whole seconds, created once per run. The same `YYYY-MM-DDTHH:MM:SSZ` string appears in the `run_complete` log line, the `run_summary` row, `evaluation.json` and `/health`, so they can be linked;
+  - `evaluation.json` starts with a `run` block: seed, policy version and `run_at`;
+  - `run_summary` keeps one row per successful run, as an audit history. Only the latest run's assessments are kept, and `/health` reports the newest row;
+  - the seed is the configured seed, recorded as given and not checked against the data (fixture runs record 0). Documented in `operate.md`, not fixed.
+- **Run linkage review (accepted by owner):**
+  - `run_at` was not unique, so "newest run" could be ambiguous. Owner decision: a run whose `run_at` is not later than the newest stored one is refused with `RunOrderError`, logged, and the previous results stay. Chosen over a `run_id` column, which would change the contracts;
+  - added a test that `evaluation.json` names the newest of several runs; fixed the `process` docstring; new tests cite AC-15 or AC-17; `evaluate_run` converts the stored time with `from_db_time`, as the API does. The API's copy of the format string stays, so the API does not import processing code.
+- **Suggestions, not built:** have the generator write a manifest with its seed, so processing records the seed that actually produced the data; store `run_at` on assessment rows, so each decision links to its run; in production, an increasing run ID as the link instead of a timestamp.
 
 ## Record on approval
 - Save as `docs/plans/service-end-to-end.md`.

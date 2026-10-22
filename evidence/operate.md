@@ -8,13 +8,14 @@ To be completed.
 
 ## Logs and status
 
-- One JSON line per event on stderr: `run_complete` (seed, policy version, loaded, rejected by reason, decisions by outcome) or `run_stopped` (error, cause).
+- One JSON line per event on stderr: `run_complete` (run_at, seed, policy version, loaded, rejected by reason, decisions by outcome) or `run_stopped` (error, cause).
+- `run_at` (UTC, whole seconds, ending in Z) links a run's log line, its `run_summary` row, `evaluation.json` and `/health`. `run_summary` keeps one row per successful run; only the latest run's assessments are kept.
 - `GET /health`: 200 with the latest run's details, or 503 with the reason (no database, no completed run, or database not readable).
 
 ## Configuration and secrets
 
 - `config/policy.yaml`: decision rules (`version`, `max_speed_kmh`); every assessment records the version.
-- `config/settings.yaml`: seed, sizes and paths; logged in the run summary.
+- `config/settings.yaml`: seed, sizes and paths; logged in the run summary. The recorded seed is the configured one and is not checked against the data on disk, so data written by another seed, or by hand (fixture runs record 0), would be reported under the wrong seed.
 - No secrets are needed; the slice uses synthetic local data only.
 
 ## Failure modes
@@ -26,6 +27,7 @@ To be completed.
 | Logins file missing, or header missing or wrong | Run stops with `InputDataError` | AC-11 |
 | IP table missing, empty, invalid, or one IP with two mappings in force at once | Run stops with `InputDataError` naming the file, line or IP | AC-11 |
 | Results write fails part-way | Transaction rolls back; previous run's results stay and keep being served; `run_stopped` logged | AC-15, AC-17 |
+| Run's `run_at` not later than the newest stored run (two runs in one second, or the clock stepped back) | Run refused with `RunOrderError`; previous results kept; `run_stopped` logged; rerun once the clock is past the newest run | AC-17 |
 | Any other failure during a run | `run_stopped` logged with error and cause; `make demo` exits 1 | AC-17 |
 | Results database missing, empty, damaged or locked | API returns 503 with the reason, never a server error | AC-15 |
 | `truth.csv` missing at evaluation | Processing still completes; evaluation stops with `InputDataError`, logged | INV-5, AC-17 |

@@ -140,3 +140,22 @@ def test_inv5_api_never_touches_truth():
             for name in names:
                 assert not name.endswith(("evaluation", "service.run")), name
                 assert name not in ("evaluation", "run"), name
+
+
+def test_ac15_item9_health_reports_the_newest_of_several_runs(tmp_path, policy):
+    """An older run inserted first must not be reported: /health picks by run_at."""
+    from geo_risk_service.contracts.schema import create_tables
+
+    db = tmp_path / "results.duckdb"
+    with duckdb.connect(str(db)) as con:
+        create_tables(con)
+        con.execute(
+            "INSERT INTO run_summary VALUES "
+            "('2000-01-01 00:00:00', 99, 'v0', 0, 0, '{}', '{}')"
+        )
+    write_dataset(generate(seed=42, customers=5, days=5), tmp_path)
+    process(tmp_path, db, policy, seed=42)
+    with duckdb.connect(str(db), read_only=True) as con:
+        assert con.execute("SELECT count(*) FROM run_summary").fetchone()[0] == 2
+    body = TestClient(create_app(db)).get("/health").json()
+    assert (body["seed"], body["policy_version"]) == (42, "v1")
