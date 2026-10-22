@@ -72,6 +72,20 @@ def _blank_to_none(value):
     return None if value == "" else value
 
 
+def _parse_iso(value):
+    """Read text strictly as an ISO-8601 time, e.g. 2026-05-01T09:00:00Z.
+
+    Without this, a bare number such as 1714554000 would be read as a Unix
+    timestamp and silently treated as UTC: a time with no stated offset.
+    """
+    if isinstance(value, str):
+        try:
+            return datetime.fromisoformat(value)
+        except ValueError:
+            raise ValueError("not an ISO-8601 time") from None
+    return value
+
+
 def _to_utc(value: datetime) -> datetime:
     """Convert a time with any stated offset to UTC (INV-4)."""
     return value.astimezone(UTC)
@@ -80,7 +94,7 @@ def _to_utc(value: datetime) -> datetime:
 # Reusable field types: non-empty text, and a time that must state its offset
 # and is stored in UTC.
 Text = Annotated[str, Field(min_length=1)]
-UtcTime = Annotated[AwareDatetime, AfterValidator(_to_utc)]
+UtcTime = Annotated[AwareDatetime, BeforeValidator(_parse_iso), AfterValidator(_to_utc)]
 
 
 class Login(BaseModel):

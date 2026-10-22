@@ -107,6 +107,12 @@ def test_ac09_missing_ip_rejected():
         login(ip="")
 
 
+def test_ac09_inv4_number_is_not_accepted_as_a_time():
+    """A bare number would otherwise be read as a Unix timestamp in UTC."""
+    with pytest.raises(ValidationError):
+        login(event_time="1714554000")
+
+
 def test_inv4_offset_converted_to_utc():
     assert login(event_time="2026-05-01T10:00:00+10:00").event_time == datetime(
         2026, 5, 1, 0, 0, tzinfo=UTC
