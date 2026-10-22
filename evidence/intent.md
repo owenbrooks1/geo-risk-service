@@ -62,17 +62,17 @@ Tests cite these IDs. Fixtures are small hand-written cases in `examples/`, with
 | ID | Band | Criterion | Known answer | Status |
 |---|---|---|---|---|
 | AC-01 | CORE | Generated data is deterministic and complete (INV-1, INV-3) | Seed 42 twice gives identical data; seed 43 differs. Every login has exactly one truth label in a separate truth table. Normal, genuine travel, impossible jump and VPN scenarios each appear. | built |
-| AC-02 | CORE | Impossible travel flags | Sydney to London, 1 hour: flag, speed range 16,944 to 17,044 km/h. | agreed |
-| AC-03 | CORE | Possible travel clears | Sydney to Melbourne, 2 hours: clear, speed range 332 to 382 km/h. | agreed |
-| AC-04 | CORE | Imprecise evidence abstains (INV-7) | Sydney to Melbourne, 45 minutes: abstain `inconclusive`, speed range 885 to 1,018 km/h. | agreed |
-| AC-05 | CORE | First login abstains (INV-7) | A customer's first login: abstain `no_baseline`. | agreed |
-| AC-06 | CORE | VPN abstains and is never a baseline (INV-7) | VPN login: abstain `unreliable_ip`. Sydney, then a VPN login, then London 1 hour after the Sydney login: London is compared with Sydney and flags. | agreed |
-| AC-07 | CORE | IP mapping in force at login time only (INV-6) | Mapping starts 1 second after the login: abstain `no_ip_location`. IP reassigned from Sydney to London at 12:00: a login at 11:59 uses Sydney and a login at 12:00 uses London (start inclusive, end exclusive). | agreed |
-| AC-08 | CORE | Boundary cases | Same timestamp, Sydney and London: flag. Same timestamp, same IP: abstain `inconclusive`. Distance exactly 1,000 km over 1 hour with zero radii: clear. A minimum speed of exactly 1,000 km/h does not flag. | agreed |
-| AC-09 | CORE | Bad rows are rejected and counted | Fixture with 1 missing IP, 1 invalid IP, 1 time without UTC offset and 1 duplicate ID: 4 rejected, one per reason. The remaining rows are assessed. | agreed |
-| AC-10 | CORE | Empty input | 0 logins: 0 assessed, 0 rejected, no error. | agreed |
-| AC-11 | CORE | Missing reference data or config stops the run | Missing or empty IP table, or one IP with two mappings in force at the same moment: run stops with a clear error. Policy with a negative threshold or no version: stops before assessing. | agreed |
-| AC-12 | CORE | Truth isolation (INV-5) | Processing with the truth table removed gives identical decisions. | agreed |
+| AC-02 | CORE | Impossible travel flags | Sydney to London, 1 hour: flag, speed range 16,944 to 17,044 km/h. | built |
+| AC-03 | CORE | Possible travel clears | Sydney to Melbourne, 2 hours: clear, speed range 332 to 382 km/h. | built |
+| AC-04 | CORE | Imprecise evidence abstains (INV-7) | Sydney to Melbourne, 45 minutes: abstain `inconclusive`, speed range 885 to 1,018 km/h. | built |
+| AC-05 | CORE | First login abstains (INV-7) | A customer's first login: abstain `no_baseline`. | built |
+| AC-06 | CORE | VPN abstains and is never a baseline (INV-7) | VPN login: abstain `unreliable_ip`. Sydney, then a VPN login, then London 1 hour after the Sydney login: London is compared with Sydney and flags. | built |
+| AC-07 | CORE | IP mapping in force at login time only (INV-6) | Mapping starts 1 second after the login: abstain `no_ip_location`. IP reassigned from Sydney to London at 12:00: a login at 11:59 uses Sydney and a login at 12:00 uses London (start inclusive, end exclusive). | built |
+| AC-08 | CORE | Boundary cases | Same timestamp, Sydney and London: flag. Same timestamp, same IP: abstain `inconclusive`. Distance exactly 1,000 km over 1 hour with zero radii: clear. A minimum speed of exactly 1,000 km/h does not flag. | built |
+| AC-09 | CORE | Bad rows are rejected and counted | Fixture with 1 missing IP, 1 invalid IP, 1 time without UTC offset and 1 duplicate ID: 4 rejected, one per reason. The remaining rows are assessed. | built |
+| AC-10 | CORE | Empty input | 0 logins: 0 assessed, 0 rejected, no error. | built |
+| AC-11 | CORE | Missing reference data or config stops the run | Missing or empty IP table, or one IP with two mappings in force at the same moment: run stops with a clear error. Policy with a negative threshold or no version: stops before assessing. | built |
+| AC-12 | CORE | Truth isolation (INV-5) | Processing with the truth table removed gives identical decisions. | built |
 | AC-13 | CORE | Evaluation metrics are exact, and abstaining never improves them | 2 flagged (1 suspicious), 3 cleared (all genuine), 1 abstained (suspicious): precision 0.5, recall 0.5 (out of all 2 suspicious logins, so an abstain counts as a miss), false clears 0, abstain rate 1/6, suspicious logins abstained 1. Recall among decided logins only (1.0) may be shown, labelled as secondary. | agreed |
 | AC-14 | CORE | No false clears on planted scenarios (INV-7) | Seed 42: false clears = 0. Scenarios are not tuned to make this pass. It shows the policy behaves as designed on the planted scenarios, not how it would perform on real logins. | agreed |
 | AC-15 | CORE | `GET /health` | Before a run: not ready, with the reason. After `make demo`: ready, with policy version, seed and counts. | agreed |

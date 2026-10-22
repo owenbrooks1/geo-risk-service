@@ -17,6 +17,12 @@
 | `tests/test_generator.py` | AC-01, INV-1, INV-3, INV-4, INV-5 | Same seed gives byte-identical files and a recorded checksum computed in a separate process; another seed differs. One truth label per login; only planted jumps are suspicious. All four scenarios appear from 4 customers. Every IP is a documentation address; times are UTC. No truth in the inputs. On four seeds, using a distance formula written in the test: every jump is at least 3,000 km in 30 to 90 minutes, and every genuine non-VPN login, including travel and the login after a jump, is reachable at 1,000 km/h with both radii added. | Green |
 | Mutation: truth leak (INV-5) | INV-5 | Adding `suspicious` to `logins.csv` made `test_inv5_truth_is_not_in_the_inputs` fail; reverted, verify green. | Done |
 | Independent review: generator | INV-1 to INV-8 | No rule breaches. Six test and robustness weaknesses found and fixed: label check, per-scenario check counts, cross-process checksum and Python pin, one-day fallback spacing, docstring overclaim, UTC check on IP times. | Done |
+| `tests/test_ingest.py`, `test_enrichment.py`, `test_policy.py` (53 tests) | AC-02 to AC-12, INV-4 to INV-7 | All 20 fixture logins get the expected decision, reason and speed range (AC-02 to AC-08). Threshold boundaries. Flagged logins still become baselines (Q-A1); own-IP reasons first (Q-A2). Logins sorted by time, ties by login ID. Mapping in force from start (inclusive) to end (exclusive), checked on a lone mapping. Bad rows rejected with exact line, ID and reason; unparseable and number-only times rejected. Missing file, missing or wrong header, empty, invalid or overlapping IP table stop the run. No assessment module uses `Truth`, imports the service or names truth outside docstrings. | Green |
+| Mutation: INV-6 cut-off | INV-6 | `at < valid_to` changed to `<=`: 2 tests failed (12:00 lookup, `L-0722`); reverted, verify green. | Done |
+| Mutation: INV-7 abstain | INV-7 | Clearing on minimum speed instead of maximum: `L-0402` failed; reverted, verify green. | Done |
+| Mutation: INV-5 isolation | INV-5 | `Truth` imported into `policy.py`, and separately `models.Truth` used: the structural test failed for `policy` each time; reverted, verify green. | Done |
+| Mutation: time order | Q5 g, AC-08 | Removing the sort by (time, login ID): the ordering test failed; reverted, verify green. | Done |
+| Independent review: assessment | INV-1 to INV-8 | No high-severity findings. Accepted and fixed: untested sort and tie-break, narrow truth-isolation test, file-order-dependent boundary test, untested open-ended overlap. Owner decisions: wrong header stops the run; first valid row wins for duplicates; times parsed strictly as ISO-8601 (number-only times were accepted before). One finding rejected (import order: checked, passing). | Done |
 | CI (`.github/workflows/verify.yml`) | Same check off the developer machine | The pushed code passes `make verify` on a clean machine from the lock file. First run on `a934734`: lint, format and 26 tests passed. | Green |
 
 ## Known gaps
@@ -30,6 +36,11 @@
 - The generator spaces genuine logins for 1,000 km/h, the same figure as policy v1. It deliberately does not read the policy. A lower threshold could make some genuine trips abstain.
 - Byte-identical generated output is promised on Python 3.12 only (`.python-version`); Python does not promise identical random sequences across versions.
 - Trips near the end of the period can run a few days past the 30-day window. Harmless; nothing assumes the window.
+
+- AC-12's runtime test is true by construction: assessment is never given a truth path. The structural test is the main INV-5 control.
+- A bad login row reports only its first problem.
+- The IP overlap check runs when the table is loaded; the service must pass `load_ip_locations` output to `assess`.
+- A login row with more values than the header is not tested.
 
 ## Local versus pull request versus pipeline
 

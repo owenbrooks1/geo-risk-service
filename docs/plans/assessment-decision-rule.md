@@ -62,6 +62,15 @@ Writing to DuckDB, the run summary and logging (service), the API, evaluation, `
 - **Q-A2, reason order:** problems with this login's own IP come first: `no_ip_location`, then `unreliable_ip`, then `no_baseline`, then the speed rule. Known answer: a customer whose first login is from a VPN gets `unreliable_ip`.
 - **Q-A3, missing logins file:** the run stops with `ReferenceDataError` naming the path. An empty file is still 0 logins, with no error. This tells "no logins" (fine) apart from "never got the logins" (a fault).
 
+## Changes during the stage
+- `ReferenceDataError` was renamed `InputDataError` during `/defend`, because a missing logins file isn't reference data.
+- Code moved into component subpackages before it was written (owner decision, `9525adf`).
+- **Owner decisions after the independent review:**
+  - **A:** a missing or wrong header stops the run (`InputDataError`). A correct header with no rows is still 0 and 0.
+  - **B:** for a duplicate ID, the first *valid* row wins. A rejected row doesn't make a later row a duplicate.
+  - **C (contracts change):** times are read strictly as ISO-8601. A bare number such as `1714554000` was previously read as a Unix time in UTC; it's now rejected as `invalid_value`.
+- **Recorded, not coded:** the IP overlap check runs at load, so the service must pass `load_ip_locations` output to `assess`.
+
 ## Record on approval
 - Save as `docs/plans/assessment-decision-rule.md`.
 - Mark assessment "in progress" on `main`.

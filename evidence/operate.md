@@ -17,6 +17,9 @@ To be completed.
 | Failure | Behaviour | Criterion |
 |---|---|---|
 | Config file missing or invalid | Run stops with `ConfigError` naming the file and every problem | AC-11 |
+| Bad login row (missing value, invalid IP, no timezone, bad time, duplicate ID) | Row rejected with line, ID and reason; the rest carry on | AC-09 |
+| Logins file missing, or header missing or wrong | Run stops with `InputDataError` | AC-11 |
+| IP table missing, empty, invalid, or one IP with two mappings in force at once | Run stops with `InputDataError` naming the file, line or IP | AC-11 |
 
 ## Rollback and degrade
 
