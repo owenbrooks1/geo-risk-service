@@ -15,12 +15,11 @@ from pathlib import Path
 import duckdb
 
 from geo_risk_service.assessment.ingest import (
-    InputDataError,
     load_ip_locations,
     load_logins,
 )
 from geo_risk_service.assessment.policy import assess
-from geo_risk_service.contracts.config import ConfigError, load_policy, load_settings
+from geo_risk_service.contracts.config import load_policy, load_settings
 from geo_risk_service.contracts.models import Assessment, Policy
 from geo_risk_service.contracts.schema import create_tables, to_db_time
 from geo_risk_service.generator.synthetic import generate, write_dataset
@@ -56,25 +55,26 @@ def _count(values) -> dict[str, int]:
 def process(data_dir: Path, db_path: Path, policy: Policy, seed: int) -> RunSummary:
     """Load inputs, assess every login and store the results in DuckDB.
 
-    Results from any earlier run are replaced. Stops with InputDataError if an
-    input file is missing or broken (AC-11), after logging the cause.
+    Results from any earlier run are replaced. Any failure is logged with its
+    cause and stops the run; an input fault is an InputDataError (AC-11).
     """
     data_dir, db_path = Path(data_dir), Path(db_path)
     try:
         loaded = load_logins(data_dir / "logins.csv")
         ip_locations = load_ip_locations(data_dir / "ip_locations.csv")
-    except InputDataError as error:
-        _log("run_stopped", error="InputDataError", cause=str(error))
+        assessments = assess(loaded.logins, ip_locations, policy)
+        summary = RunSummary(
+            seed=seed,
+            policy_version=policy.version,
+            loaded=len(loaded.logins),
+            rejected_by_reason=_count(r.reason for r in loaded.rejected),
+            decisions_by_outcome=_count(a.decision for a in assessments),
+        )
+        _store(db_path, assessments, summary, rejected=len(loaded.rejected))
+    except Exception as error:
+        # Any failure, expected or not, is logged before it stops the run.
+        _log("run_stopped", error=type(error).__name__, cause=str(error))
         raise
-    assessments = assess(loaded.logins, ip_locations, policy)
-    summary = RunSummary(
-        seed=seed,
-        policy_version=policy.version,
-        loaded=len(loaded.logins),
-        rejected_by_reason=_count(r.reason for r in loaded.rejected),
-        decisions_by_outcome=_count(a.decision for a in assessments),
-    )
-    _store(db_path, assessments, summary, rejected=len(loaded.rejected))
     _log("run_complete", **asdict(summary))
     return summary
 
@@ -91,51 +91,73 @@ def _csv_values(assessment: Assessment, columns: list[str]) -> list:
 
 
 def _store(db_path: Path, assessments: list[Assessment], summary, rejected: int):
-    """Replace the results tables with this run's assessments and summary."""
+    """Replace the results tables with this run's assessments and summary.
+
+    All in one transaction: if anything fails, the previous run's results stay
+    in place and keep being served, rather than a half-written database.
+    """
     db_path.parent.mkdir(parents=True, exist_ok=True)
     columns = list(Assessment.model_fields)
     with duckdb.connect(str(db_path)) as con:
-        con.execute("DROP TABLE IF EXISTS assessments")
-        con.execute("DROP TABLE IF EXISTS run_summary")
-        create_tables(con)
-        if assessments:
-            # One bulk load from a temporary CSV: inserting row by row is far
-            # too slow in DuckDB for a few thousand rows.
-            staging = db_path.with_suffix(".staging.csv")
-            with open(staging, "w", newline="") as f:
-                writer = csv.writer(f, lineterminator="\n")
-                writer.writerow(columns)
-                for a in assessments:
-                    writer.writerow(_csv_values(a, columns))
-            try:
-                con.execute(f"COPY assessments FROM '{staging}' (HEADER)")
-            finally:
-                staging.unlink()
-        con.execute(
-            "INSERT INTO run_summary VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [
-                to_db_time(datetime.now(UTC)),
-                summary.seed,
-                summary.policy_version,
-                summary.loaded,
-                rejected,
-                json.dumps(summary.rejected_by_reason),
-                json.dumps(summary.decisions_by_outcome),
-            ],
-        )
+        con.begin()
+        try:
+            _replace_results(con, db_path, columns, assessments, summary, rejected)
+        except Exception:
+            con.rollback()
+            raise
+        con.commit()
+
+
+def _replace_results(con, db_path, columns, assessments, summary, rejected):
+    """The statements of one store, run inside the caller's transaction."""
+    con.execute("DROP TABLE IF EXISTS assessments")
+    con.execute("DROP TABLE IF EXISTS run_summary")
+    create_tables(con)
+    if assessments:
+        # One bulk load from a temporary CSV: inserting row by row is far
+        # too slow in DuckDB for a few thousand rows.
+        staging = db_path.with_suffix(".staging.csv")
+        with open(staging, "w", newline="") as f:
+            writer = csv.writer(f, lineterminator="\n")
+            writer.writerow(columns)
+            for a in assessments:
+                writer.writerow(_csv_values(a, columns))
+        try:
+            # COPY cannot take the path as a parameter, so quote it safely.
+            quoted = str(staging).replace("'", "''")
+            names = ", ".join(columns)
+            con.execute(f"COPY assessments ({names}) FROM '{quoted}' (HEADER)")
+        finally:
+            staging.unlink()
+    con.execute(
+        "INSERT INTO run_summary VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [
+            to_db_time(datetime.now(UTC)),
+            summary.seed,
+            summary.policy_version,
+            summary.loaded,
+            rejected,
+            json.dumps(summary.rejected_by_reason),
+            json.dumps(summary.decisions_by_outcome),
+        ],
+    )
 
 
 def evaluate_run(data_dir: Path, db_path: Path) -> EvaluationReport:
     """Score the stored decisions against truth.csv and save evaluation.json."""
     data_dir = Path(data_dir)
-    truth = load_truth(data_dir / "truth.csv")
-    with duckdb.connect(str(db_path), read_only=True) as con:
-        rows = con.execute("SELECT login_id, decision, reason FROM assessments")
-        decisions = [
-            {"login_id": i, "decision": d, "reason": r} for i, d, r in rows.fetchall()
-        ]
-    report = evaluate(decisions, truth)
-    (data_dir / "evaluation.json").write_text(json.dumps(asdict(report), indent=2))
+    try:
+        truth = load_truth(data_dir / "truth.csv")
+        with duckdb.connect(str(db_path), read_only=True) as con:
+            rows = con.execute(
+                "SELECT login_id, decision, reason FROM assessments ORDER BY login_id"
+            ).fetchall()
+        decisions = [{"login_id": i, "decision": d, "reason": r} for i, d, r in rows]
+        report = evaluate(decisions, truth)
+        (data_dir / "evaluation.json").write_text(json.dumps(asdict(report), indent=2))
+    except Exception as error:
+        _log("run_stopped", error=type(error).__name__, cause=str(error))
+        raise
     return report
 
 
@@ -144,11 +166,11 @@ def run_demo(settings_path: Path, policy_path: Path) -> EvaluationReport:
     try:
         settings = load_settings(settings_path)
         policy = load_policy(policy_path)
-    except ConfigError as error:
-        _log("run_stopped", error="ConfigError", cause=str(error))
+        dataset = generate(settings.seed, settings.customers, settings.days)
+        write_dataset(dataset, settings.data_dir)
+    except Exception as error:
+        _log("run_stopped", error=type(error).__name__, cause=str(error))
         raise
-    dataset = generate(settings.seed, settings.customers, settings.days)
-    write_dataset(dataset, settings.data_dir)
     process(settings.data_dir, settings.db_path, policy, settings.seed)
     return evaluate_run(settings.data_dir, settings.db_path)
 
@@ -173,6 +195,7 @@ def format_report(report: EvaluationReport) -> str:
             f"  suspicious abstained: {report.suspicious_abstained}",
             f"  not assessed:         {report.not_assessed}"
             f" (suspicious: {report.not_assessed_suspicious})",
+            f"  no truth label:       {report.no_truth}",
         ]
     )
 
@@ -182,7 +205,7 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stderr)
     try:
         report = run_demo(Path("config/settings.yaml"), Path("config/policy.yaml"))
-    except (ConfigError, InputDataError):
+    except Exception:  # already logged as run_stopped with its cause
         return 1
     print(format_report(report))
     return 0

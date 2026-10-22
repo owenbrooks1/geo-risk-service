@@ -61,3 +61,13 @@ def test_qs2_unassessed_logins_reported_separately(examples):
 def test_inv5_missing_truth_file_is_a_clear_error(tmp_path):
     with pytest.raises(InputDataError, match="truth.csv"):
         load_truth(tmp_path / "truth.csv")
+
+
+def test_item4_decision_without_truth_counted_not_scored_as_genuine(examples):
+    """A decision with no truth row must not hide a false clear."""
+    decisions = read_csv(examples / "evaluation/assessments.csv") + [
+        {"login_id": "E-77", "decision": "clear"}
+    ]
+    report = evaluate(decisions, load_truth(examples / "evaluation/truth.csv"))
+    assert report.no_truth == 1
+    assert (report.precision, report.recall, report.false_clears) == (0.5, 0.5, 0)

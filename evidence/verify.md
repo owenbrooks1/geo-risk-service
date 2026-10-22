@@ -23,6 +23,13 @@
 | Mutation: INV-5 isolation | INV-5 | `Truth` imported into `policy.py`, and separately `models.Truth` used: the structural test failed for `policy` each time; reverted, verify green. | Done |
 | Mutation: time order | Q5 g, AC-08 | Removing the sort by (time, login ID): the ordering test failed; reverted, verify green. | Done |
 | Independent review: assessment | INV-1 to INV-8 | No high-severity findings. Accepted and fixed: untested sort and tie-break, narrow truth-isolation test, file-order-dependent boundary test, untested open-ended overlap. Owner decisions: wrong header stops the run; first valid row wins for duplicates; times parsed strictly as ISO-8601 (number-only times were accepted before). One finding rejected (import order: checked, passing). | Done |
+| `tests/test_evaluation.py`, `test_run.py`, `test_api.py` (28 tests) | AC-13 to AC-18, INV-4, INV-5, INV-7 | Exact AC-13 metrics; null when undefined; logins not assessed and decisions with no truth counted separately. Full seed 42 demo has 0 false clears. One `run_complete` JSON line per run; every failure, expected or not, logs `run_stopped` with its cause. A failed results write rolls back and keeps the previous run. Processing works with truth deleted. `/health` 503 with a reason when missing, empty or damaged, 200 with run details after; `/assessments` returns every stored field exactly as assessed, 404 unknown; all times end in Z; the API works with the database read-only on disk; the API and `process` never touch truth. | Green |
+| Mutation: INV-5 in processing | INV-5 | `process` made to load `truth.csv`: 2 tests failed; reverted, verify green. | Done |
+| Mutation: AC-13 recall | AC-13, INV-7 | Recall counted over decided logins only: test failed (1.0 instead of 0.5); reverted, verify green. | Done |
+| Mutation: read-only API | AC-15, AC-16 | `read_only=True` removed: read-only test failed; reverted, verify green. | Done |
+| Mutation: results transaction | AC-15, AC-17 | Transaction removed: rollback test failed; reverted, verify green. | Done |
+| Independent review: service | INV-1 to INV-8 | No rule breaches. Owner also raised five issues. Fixed: unlogged failures, writes not all-or-nothing, damaged database gave 500, `run_at` not in Z, decisions without truth scored as genuine, an over-claiming docstring, COPY columns by position, path quoting, weak API truth test, untested read-only access, unordered output. | Done |
+| `make demo` and `make serve`, run by hand | AC-18 | Demo: 4,480 logins, 10 flags, 4,340 clears, 130 abstains, precision 1.0, recall 1.0, 0 false clears. API answered `/health`, a flagged login and a 404. | Done |
 | CI (`.github/workflows/verify.yml`) | Same check off the developer machine | The pushed code passes `make verify` on a clean machine from the lock file. First run on `a934734`: lint, format and 26 tests passed. | Green |
 
 ## Known gaps
@@ -41,6 +48,11 @@
 - A bad login row reports only its first problem.
 - The IP overlap check runs when the table is loaded; the service must pass `load_ip_locations` output to `assess`.
 - A login row with more values than the header is not tested.
+
+- The test client prints a deprecation warning suggesting `httpx2`; not adopted (new dependency, tests only).
+- Truth separation for processing is by convention: `truth.csv` sits in the same folder that `process` reads, which is enforced by tests, not by file permissions.
+- `make serve` reads `config/settings.yaml` relative to the current folder, so it must run from the repository root.
+- The API's data access lives inside `create_app`, so it is tested through the API rather than as separate functions.
 
 ## Local versus pull request versus pipeline
 

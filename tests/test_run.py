@@ -110,3 +110,68 @@ def test_inv5_process_code_never_mentions_truth():
             assert "truth" not in name.lower()
         if isinstance(node, ast.Constant) and isinstance(node.value, str):
             assert "truth" not in node.value.lower()
+
+
+def test_item1_failed_store_keeps_previous_results(tmp_path, config_dir, monkeypatch):
+    """A write that fails halfway rolls back: the earlier run is still there."""
+    import duckdb
+
+    write_dataset(generate(seed=42, customers=5, days=5), tmp_path)
+    db = tmp_path / "results.duckdb"
+    policy = load_policy(config_dir / "policy.yaml")
+    first = process(tmp_path, db, policy, seed=42)
+
+    def broken(*args):
+        raise RuntimeError("disk full")
+
+    monkeypatch.setattr(run, "_csv_values", broken)
+    with pytest.raises(RuntimeError):
+        process(tmp_path, db, policy, seed=7)
+    with duckdb.connect(str(db), read_only=True) as con:
+        assert con.execute("SELECT count(*) FROM assessments").fetchone()[0] == (
+            first.loaded
+        )
+        assert con.execute("SELECT seed FROM run_summary").fetchall() == [(42,)]
+
+
+def test_item5_unexpected_failure_is_logged_once(
+    tmp_path, config_dir, caplog, monkeypatch
+):
+    caplog.set_level(logging.INFO, logger="geo_risk_service")
+
+    def broken(*args):
+        raise RuntimeError("generator bug")
+
+    monkeypatch.setattr(run, "generate", broken)
+    with pytest.raises(RuntimeError):
+        run_demo(
+            write_settings(tmp_path, customers=5, days=5), config_dir / "policy.yaml"
+        )
+    [stopped] = events(caplog, "run_stopped")
+    assert (stopped["error"], stopped["cause"]) == ("RuntimeError", "generator bug")
+
+
+def test_item5_missing_truth_at_evaluation_is_logged(tmp_path, config_dir, caplog):
+    caplog.set_level(logging.INFO, logger="geo_risk_service")
+    write_dataset(generate(seed=42, customers=5, days=5), tmp_path)
+    process(
+        tmp_path,
+        tmp_path / "results.duckdb",
+        load_policy(config_dir / "policy.yaml"),
+        42,
+    )
+    (tmp_path / "truth.csv").unlink()
+    with pytest.raises(InputDataError):
+        evaluate_run(tmp_path, tmp_path / "results.duckdb")
+    [stopped] = events(caplog, "run_stopped")
+    assert "truth.csv" in stopped["cause"]
+
+
+def test_staging_path_with_a_quote_is_safe(tmp_path, config_dir):
+    """The bulk-load path is quoted safely inside the SQL text."""
+    folder = tmp_path / "it's here"
+    write_dataset(generate(seed=42, customers=5, days=5), folder)
+    summary = process(
+        folder, folder / "results.duckdb", load_policy(config_dir / "policy.yaml"), 42
+    )
+    assert summary.loaded > 0

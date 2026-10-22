@@ -89,6 +89,23 @@ AC-19 (list filters), AC-20 (`GET /evaluation`), AC-21 (order independence), AC-
   - Run logs are **JSON lines**, one object per entry: `event`, `seed`, `policy_version`, `loaded`, `rejected_by_reason` and `decisions_by_outcome`. A stopped run logs `event: run_stopped`, `error` and `cause`.
   - The human-readable evaluation report is printed separately.
 
+## Changes during the stage
+- The bulk load of assessments uses a temporary CSV with `COPY`. Row-by-row inserts took 79 seconds for the full demo.
+- **Owner-raised issues, all fixed:**
+  - results are replaced in one transaction;
+  - a damaged, empty or locked database gives 503;
+  - `run_at` ends in Z;
+  - decisions with no truth row are counted as `no_truth`;
+  - any failure logs `run_stopped`.
+- **Reviewer findings, all fixed:**
+  - the docstring now states that only recall is protected from abstaining;
+  - `COPY` names its columns;
+  - quotes in the staging path are escaped;
+  - the API's truth test is stronger;
+  - a test checks read-only access;
+  - stored decisions are read in login ID order.
+- The service code was committed (`c071a56`) before close-stage, so the owner could test it by hand.
+
 ## Record on approval
 - Save as `docs/plans/service-end-to-end.md`.
 - Mark the service "in progress" on `main`.

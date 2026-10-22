@@ -28,27 +28,33 @@ def create_app(db_path: Path) -> FastAPI:
     db_path = Path(db_path)
     app = FastAPI(title="Geospatial Risk Intelligence Service")
 
-    def latest_run():
-        """The most recent run summary, or None if there are no results yet."""
-        if not db_path.is_file():
-            return None
-        with duckdb.connect(str(db_path), read_only=True) as con:
-            cursor = con.execute(
-                "SELECT * FROM run_summary ORDER BY run_at DESC LIMIT 1"
-            )
-            row = cursor.fetchone()
-            names = [d[0] for d in cursor.description]
-        return dict(zip(names, row, strict=True)) if row else None
+    def latest_run() -> tuple[dict | None, str]:
+        """The most recent run summary, or None and the reason it is missing.
 
-    def missing_reason() -> str:
-        return f"no results database at {db_path}; run make demo"
+        A missing, empty, damaged or locked database is "not ready", never a
+        server error.
+        """
+        if not db_path.is_file():
+            return None, f"no results database at {db_path}; run make demo"
+        try:
+            with duckdb.connect(str(db_path), read_only=True) as con:
+                cursor = con.execute(
+                    "SELECT * FROM run_summary ORDER BY run_at DESC LIMIT 1"
+                )
+                row = cursor.fetchone()
+                names = [d[0] for d in cursor.description]
+        except duckdb.Error as error:
+            return None, f"results database at {db_path} not readable: {error}"
+        if row is None:
+            return None, f"no completed run in {db_path}; run make demo"
+        return dict(zip(names, row, strict=True)), ""
 
     @app.get("/health")
     def health():
         """Ready with the latest run's details, or 503 with the reason."""
-        run = latest_run()
+        run, reason = latest_run()
         if run is None:
-            return _not_ready(missing_reason())
+            return _not_ready(reason)
         return {
             "status": "ready",
             "policy_version": run["policy_version"],
@@ -63,14 +69,18 @@ def create_app(db_path: Path) -> FastAPI:
     @app.get("/assessments/{login_id}", response_model=Assessment)
     def get_assessment(login_id: str):
         """One login's decision, reason, evidence and policy version."""
-        if latest_run() is None:
-            return _not_ready(missing_reason())
-        with duckdb.connect(str(db_path), read_only=True) as con:
-            cursor = con.execute(
-                "SELECT * FROM assessments WHERE login_id = ?", [login_id]
-            )
-            row = cursor.fetchone()
-            names = [d[0] for d in cursor.description]
+        run, reason = latest_run()
+        if run is None:
+            return _not_ready(reason)
+        try:
+            with duckdb.connect(str(db_path), read_only=True) as con:
+                cursor = con.execute(
+                    "SELECT * FROM assessments WHERE login_id = ?", [login_id]
+                )
+                row = cursor.fetchone()
+                names = [d[0] for d in cursor.description]
+        except duckdb.Error as error:
+            return _not_ready(f"results database at {db_path} not readable: {error}")
         if row is None:
             raise HTTPException(status_code=404, detail=f"unknown login_id: {login_id}")
         record = dict(zip(names, row, strict=True))

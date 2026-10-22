@@ -73,12 +73,12 @@ Tests cite these IDs. Fixtures are small hand-written cases in `examples/`, with
 | AC-10 | CORE | Empty input | 0 logins: 0 assessed, 0 rejected, no error. | built |
 | AC-11 | CORE | Missing reference data or config stops the run | Missing or empty IP table, or one IP with two mappings in force at the same moment: run stops with a clear error. Policy with a negative threshold or no version: stops before assessing. | built |
 | AC-12 | CORE | Truth isolation (INV-5) | Processing with the truth table removed gives identical decisions. | built |
-| AC-13 | CORE | Evaluation metrics are exact, and abstaining never improves them | 2 flagged (1 suspicious), 3 cleared (all genuine), 1 abstained (suspicious): precision 0.5, recall 0.5 (out of all 2 suspicious logins, so an abstain counts as a miss), false clears 0, abstain rate 1/6, suspicious logins abstained 1. Recall among decided logins only (1.0) may be shown, labelled as secondary. | agreed |
-| AC-14 | CORE | No false clears on planted scenarios (INV-7) | Seed 42: false clears = 0. Scenarios are not tuned to make this pass. It shows the policy behaves as designed on the planted scenarios, not how it would perform on real logins. | agreed |
-| AC-15 | CORE | `GET /health` | Before a run: not ready, with the reason. After `make demo`: ready, with policy version, seed and counts. | agreed |
-| AC-16 | CORE | `GET /assessments/{login_id}` | Known ID: decision, reason, evidence and policy version. Unknown ID: 404. | agreed |
-| AC-17 | CORE | Run logging | Each run logs one summary: seed, policy version, loaded, rejected by reason, decisions by outcome. A stopped run logs the cause (for example, the missing IP table path). | agreed |
-| AC-18 | CORE | One-command demo | From a clean checkout, `uv sync` then `make demo` generates, processes and evaluates, and prints the evaluation report. `make serve` then starts the API over those results. The README shows a real example request and response. | agreed |
+| AC-13 | CORE | Evaluation metrics are exact, and abstaining never improves them | 2 flagged (1 suspicious), 3 cleared (all genuine), 1 abstained (suspicious): precision 0.5, recall 0.5 (out of all 2 suspicious logins, so an abstain counts as a miss), false clears 0, abstain rate 1/6, suspicious logins abstained 1. Recall among decided logins only (1.0) may be shown, labelled as secondary. | built |
+| AC-14 | CORE | No false clears on planted scenarios (INV-7) | Seed 42: false clears = 0. Scenarios are not tuned to make this pass. It shows the policy behaves as designed on the planted scenarios, not how it would perform on real logins. | built |
+| AC-15 | CORE | `GET /health` | Before a run: not ready, with the reason. After `make demo`: ready, with policy version, seed and counts. | built |
+| AC-16 | CORE | `GET /assessments/{login_id}` | Known ID: decision, reason, evidence and policy version. Unknown ID: 404. | built |
+| AC-17 | CORE | Run logging | Each run logs one summary: seed, policy version, loaded, rejected by reason, decisions by outcome. A stopped run logs the cause (for example, the missing IP table path). | built |
+| AC-18 | CORE | One-command demo | From a clean checkout, `uv sync` then `make demo` generates, processes and evaluates, and prints the evaluation report. `make serve` then starts the API over those results. The README shows a real example request and response. | built |
 | AC-19 | ENHANCE | `GET /assessments` filters | `decision=maybe`: 422. Limit above the cap: 422. | agreed |
 | AC-20 | ENHANCE | `GET /evaluation` | Returns the AC-13 metrics. Never includes per-login truth. | agreed |
 | AC-21 | ENHANCE | Order independence | The same fixture in shuffled order gives identical decisions. | agreed |

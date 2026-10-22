@@ -1,8 +1,11 @@
 """API tests: health and single assessment lookup (AC-15, AC-16, INV-4, INV-5)."""
 
 import ast
+import os
+import stat
 from pathlib import Path
 
+import duckdb
 import pytest
 from fastapi.testclient import TestClient
 
@@ -58,8 +61,49 @@ def test_ac16_known_login_returns_decision_evidence_and_version(fixture_client):
 
 
 def test_inv4_times_returned_as_utc(fixture_client):
+    """Item 3: every time the API returns is written the same way, ending in Z."""
     body = fixture_client.get("/assessments/L-0202").json()
     assert body["event_time"] == "2026-05-01T10:00:00Z"
+    run_at = fixture_client.get("/health").json()["run_at"]
+    assert run_at.endswith("Z") and "+" not in run_at
+
+
+def test_ac16_every_stored_field_round_trips(fixture_client, examples, policy):
+    """Reviewer: the bulk load must not swap columns. The API returns exactly
+    what assess produced, field by field."""
+    from geo_risk_service.assessment.ingest import load_ip_locations, load_logins
+    from geo_risk_service.assessment.policy import assess
+
+    logins = load_logins(examples / "assess/logins.csv").logins
+    places = load_ip_locations(examples / "assess/ip_locations.csv")
+    expected = {a.login_id: a for a in assess(logins, places, policy)}["L-0202"]
+    body = fixture_client.get("/assessments/L-0202").json()
+    assert body == expected.model_dump(mode="json")
+
+
+def test_item2_database_without_results_tables_is_not_ready(tmp_path):
+    """An empty or damaged database file gives 503 with a reason, not a 500."""
+    db = tmp_path / "results.duckdb"
+    duckdb.connect(str(db)).close()
+    client = TestClient(create_app(db))
+    for path in ("/health", "/assessments/L-0202"):
+        response = client.get(path)
+        assert response.status_code == 503, path
+        assert "not readable" in response.json()["reason"]
+
+
+def test_api_opens_the_database_read_only(tmp_path, examples, policy):
+    """Reviewer: with the file read-only on disk, the API still works. A
+    read-write connection would fail here."""
+    db = tmp_path / "results.duckdb"
+    process(examples / "assess", db, policy, seed=0)
+    os.chmod(db, stat.S_IRUSR)
+    try:
+        client = TestClient(create_app(db))
+        assert client.get("/health").status_code == 200
+        assert client.get("/assessments/L-0202").status_code == 200
+    finally:
+        os.chmod(db, stat.S_IRUSR | stat.S_IWUSR)
 
 
 def test_ac16_unknown_login_is_404(fixture_client):
@@ -72,10 +116,27 @@ def test_ac16_lookup_before_any_run_is_not_ready(tmp_path):
 
 
 def test_inv5_api_never_touches_truth():
+    """No name, attribute or text in the API mentions truth (docstrings aside),
+    and it imports neither evaluation nor the run module."""
     tree = ast.parse(API_SOURCE.read_text())
+    docstrings = {
+        id(n.body[0].value)
+        for n in [tree, *ast.walk(tree)]
+        if isinstance(n, ast.Module | ast.FunctionDef)
+        and n.body
+        and isinstance(n.body[0], ast.Expr)
+        and isinstance(n.body[0].value, ast.Constant)
+    }
     for node in ast.walk(tree):
         if isinstance(node, ast.Name | ast.Attribute):
             name = node.id if isinstance(node, ast.Name) else node.attr
             assert "truth" not in name.lower()
-        if isinstance(node, ast.ImportFrom):
-            assert "evaluation" not in (node.module or "")
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            if id(node) not in docstrings:
+                assert "truth" not in node.value.lower()
+        if isinstance(node, ast.ImportFrom | ast.Import):
+            names = [node.module or ""] if isinstance(node, ast.ImportFrom) else []
+            names += [a.name for a in node.names]
+            for name in names:
+                assert not name.endswith(("evaluation", "service.run")), name
+                assert name not in ("evaluation", "run"), name

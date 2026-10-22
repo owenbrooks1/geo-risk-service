@@ -1,7 +1,8 @@
 """Score decisions against hidden truth. The only module that reads truth (INV-5).
 
-Abstaining can never make the numbers look better: recall counts every
-suspicious login, so an abstain on one is a miss (AC-13).
+Recall counts every suspicious login, so an abstain on one is a miss: abstaining
+cannot raise recall (AC-13). Precision and false clears can look better when the
+policy abstains, so read them with suspicious_abstained, reported alongside.
 """
 
 import csv
@@ -29,6 +30,7 @@ class EvaluationReport:
     suspicious_abstained: int
     not_assessed: int
     not_assessed_suspicious: int
+    no_truth: int
 
 
 def load_truth(path: Path) -> list[Truth]:
@@ -50,17 +52,22 @@ def _ratio(part: int, whole: int) -> float | None:
 
 def evaluate(decisions: list[dict], truth: list[Truth]) -> EvaluationReport:
     """Compare decisions (rows with login_id, decision and optional reason)
-    with truth. Logins with truth but no decision are counted separately as
-    not assessed (Q-S2), so data problems are visible but do not distort the
-    policy's numbers."""
+    with truth. Logins with truth but no decision are counted as not assessed
+    (Q-S2), and decisions with no truth row as no truth, so data problems are
+    visible but do not distort the policy's numbers."""
     suspicious = {t.login_id: t.suspicious for t in truth}
     counts = {"flag": 0, "clear": 0, "abstain": 0}
     by_reason: dict[str, int] = {}
-    hits = false_clears = suspicious_abstained = 0
+    hits = false_clears = suspicious_abstained = no_truth = 0
     for row in decisions:
         decision = str(row["decision"])
         counts[decision] += 1
-        bad = suspicious.get(row["login_id"], False)
+        if row["login_id"] not in suspicious:
+            # Truth and results have drifted apart. Count it, so it is visible,
+            # rather than scoring the login as genuine.
+            no_truth += 1
+            continue
+        bad = suspicious[row["login_id"]]
         if decision == "abstain":
             reason = str(row.get("reason") or "unknown")
             by_reason[reason] = by_reason.get(reason, 0) + 1
@@ -84,4 +91,5 @@ def evaluate(decisions: list[dict], truth: list[Truth]) -> EvaluationReport:
         suspicious_abstained=suspicious_abstained,
         not_assessed=len(unassessed),
         not_assessed_suspicious=sum(t.suspicious for t in unassessed),
+        no_truth=no_truth,
     )
