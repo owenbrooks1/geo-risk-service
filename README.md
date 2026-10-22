@@ -86,6 +86,16 @@ Even the most generous reading of the two IP locations needs 16,486 km/h, so the
 - **Local only.** The API has no authentication and listens on 127.0.0.1. The production approach is in `evidence/operate.md`.
 - **Optional extras not built:** list filters, an evaluation endpoint, and live single-login assessment.
 
+## Next steps
+
+In priority order:
+
+1. **Harder scenarios:** add attackers using VPNs, coarse IP locations and attackers close enough to reach, to measure where the rule fails.
+2. **Card-present evidence:** use merchant and ATM data to decide VPN logins instead of abstaining.
+3. **Production access control:** add authentication and authorisation to the API, as described in `evidence/operate.md`.
+4. **Streaming:** call the existing per-login function from an event stream instead of a batch (D4).
+5. **Optional extras:** list filters, an evaluation endpoint and live single-login assessment.
+
 ## Links
 
 - Working method and hard rules: [`AGENTS.md`](AGENTS.md)
