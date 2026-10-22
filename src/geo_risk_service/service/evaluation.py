@@ -31,6 +31,7 @@ class EvaluationReport:
     not_assessed: int
     not_assessed_suspicious: int
     no_truth: int
+    by_scenario: dict[str, dict[str, int]]
 
 
 def load_truth(path: Path) -> list[Truth]:
@@ -56,6 +57,8 @@ def evaluate(decisions: list[dict], truth: list[Truth]) -> EvaluationReport:
     (Q-S2), and decisions with no truth row as no truth, so data problems are
     visible but do not distort the policy's numbers."""
     suspicious = {t.login_id: t.suspicious for t in truth}
+    scenario = {t.login_id: str(t.scenario) for t in truth}
+    by_scenario: dict[str, dict[str, int]] = {}
     counts = {"flag": 0, "clear": 0, "abstain": 0}
     by_reason: dict[str, int] = {}
     hits = false_clears = suspicious_abstained = no_truth = 0
@@ -68,6 +71,9 @@ def evaluate(decisions: list[dict], truth: list[Truth]) -> EvaluationReport:
             no_truth += 1
             continue
         bad = suspicious[row["login_id"]]
+        # Which planted scenario got which decision, to show each behaved as designed.
+        cell = by_scenario.setdefault(scenario[row["login_id"]], {})
+        cell[decision] = cell.get(decision, 0) + 1
         if decision == "abstain":
             reason = str(row.get("reason") or "unknown")
             by_reason[reason] = by_reason.get(reason, 0) + 1
@@ -92,4 +98,8 @@ def evaluate(decisions: list[dict], truth: list[Truth]) -> EvaluationReport:
         not_assessed=len(unassessed),
         not_assessed_suspicious=sum(t.suspicious for t in unassessed),
         no_truth=no_truth,
+        by_scenario={
+            name: dict(sorted(cells.items()))
+            for name, cells in sorted(by_scenario.items())
+        },
     )

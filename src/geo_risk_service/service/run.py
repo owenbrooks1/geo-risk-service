@@ -196,6 +196,9 @@ def format_report(report: EvaluationReport) -> str:
             f"  not assessed:         {report.not_assessed}"
             f" (suspicious: {report.not_assessed_suspicious})",
             f"  no truth label:       {report.no_truth}",
+            "",
+            "By planted scenario (decisions each scenario received)",
+            *[f"  {name:<16}{cells}" for name, cells in report.by_scenario.items()],
         ]
     )
 

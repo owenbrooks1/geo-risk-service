@@ -36,7 +36,15 @@ Evaluation against hidden truth
   recall:               1.000  (abstain = miss)
   false clears:         0
   abstain rate:         0.029
+
+By planted scenario (decisions each scenario received)
+  genuine_travel  {'clear': 30}
+  impossible_jump {'flag': 10}
+  normal          {'abstain': 100, 'clear': 4310}
+  vpn             {'abstain': 30}
 ```
+
+Every planted scenario received the decision it was designed to get. The 100 `normal` abstains are each customer's first login, which has no earlier location to compare with.
 
 These numbers show the policy behaves as designed on planted scenarios. They are not a measure of real-world performance.
 

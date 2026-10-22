@@ -71,3 +71,12 @@ def test_item4_decision_without_truth_counted_not_scored_as_genuine(examples):
     report = evaluate(decisions, load_truth(examples / "evaluation/truth.csv"))
     assert report.no_truth == 1
     assert (report.precision, report.recall, report.false_clears) == (0.5, 0.5, 0)
+
+
+def test_ac13_breakdown_by_scenario(fixture_report):
+    """Each planted scenario against the decisions it got (owner request)."""
+    assert fixture_report.by_scenario == {
+        "genuine_travel": {"clear": 1, "flag": 1},
+        "impossible_jump": {"abstain": 1, "flag": 1},
+        "normal": {"clear": 2},
+    }
