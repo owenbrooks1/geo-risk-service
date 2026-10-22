@@ -1,62 +1,83 @@
 # Verification
 
-`make verify` is the single check. It runs locally, before every agent commit and in CI.
+`make verify` is the single check. It runs the linter, the format and lock-file checks, then all 157 tests, which pass. It runs locally, automatically before every agent commit, and in CI on every push.
 
-## Checks and what each proves
+Two terms used below:
 
-| Check | Criteria or rule | What it proves | Result |
+- **Known answer:** the expected result, worked out from the criteria, separately from the product code, before the code was written. A test then checks the code against it, rather than repeating what the code does.
+- **Deliberate break (mutation check):** the code is broken on purpose, a test is shown to fail, and the change is reverted. This shows the test would catch that fault.
+
+## Tests
+
+| Area | Criteria and rules | What the tests show | Tests |
 |---|---|---|---|
-| `ruff check` (lint) | Engineering rules | Code has no undefined names, unused imports or common bug patterns, and imports are ordered. | Green |
-| `ruff format --check` | Engineering rules | Code follows one consistent format, so diffs show only real changes. | Green |
-| `--locked` on every `uv run` | No new dependencies without approval | `uv.lock` matches `pyproject.toml`. A dependency added without updating the lock fails the check. Shown by adding an unlisted package: verify failed, then passed after revert. | Green |
-| `tests/test_package.py::test_package_imports` | Harness only | `make verify` runs real tests against the installed package. It does not cover any AC or INV rule. | Green |
-| Commit gate (`.claude/hooks/verify_before_commit.py`) | Stage done only when verify passes | An agent `git commit` is blocked when its message breaks the conventions or verify fails. Shown by adding an unused import: the hook exited 2 with the lint failure; after revert it exited 0. Non-commit commands pass without running verify. | Green |
-| `tests/test_commit_gate.py` (25 known-answer cases) | Commit conventions in `AGENTS.md` | Good messages pass. Each convention rejects a message that breaks it: multi-line, over 72 characters, emoji, attribution, full stop, lower-case start, too vague, not imperative. The message is read correctly from the supported command forms; message files, heredocs and multiple `-m` are blocked; non-commit commands are ignored. | Green |
-| `tests/test_contracts.py` (19 tests) | AC-09 and AC-11 (model and config parts), INV-1, INV-4, INV-6 contract | Config loads, or stops with an error naming the file and every problem. Login rows need an offset time and a real IP; offsets convert to UTC. IP mapping windows are well formed. Results table matches the `Assessment` model. Times round-trip through DuckDB as UTC whatever the local zone. Fixtures parse, cover AC-02 to AC-08, and use documentation-only IPs. It does not prove any decision is correct; that is the assessment stage. | Green |
-| Mutation: time storage (INV-4) | INV-4 | Switching `run_summary.run_at` back to `TIMESTAMPTZ` made the round-trip test fail with a missing `pytz` error; reverted, verify green. | Done |
-| `tests/test_generator.py` | AC-01, INV-1, INV-3, INV-4, INV-5 | Same seed gives byte-identical files and a recorded checksum computed in a separate process; another seed differs. One truth label per login; only planted jumps are suspicious. All four scenarios appear from 4 customers. Every IP is a documentation address; times are UTC. No truth in the inputs. On four seeds, using a distance formula written in the test: every jump is at least 3,000 km in 30 to 90 minutes, and every genuine non-VPN login, including travel and the login after a jump, is reachable at 1,000 km/h with both radii added. | Green |
-| Mutation: truth leak (INV-5) | INV-5 | Adding `suspicious` to `logins.csv` made `test_inv5_truth_is_not_in_the_inputs` fail; reverted, verify green. | Done |
-| Independent review: generator | INV-1 to INV-8 | No rule breaches. Six test and robustness weaknesses found and fixed: label check, per-scenario check counts, cross-process checksum and Python pin, one-day fallback spacing, docstring overclaim, UTC check on IP times. | Done |
-| `tests/test_ingest.py`, `test_enrichment.py`, `test_policy.py` (53 tests) | AC-02 to AC-12, INV-4 to INV-7 | All 20 fixture logins get the expected decision, reason and speed range (AC-02 to AC-08). Threshold boundaries. Flagged logins still become baselines (Q-A1); own-IP reasons first (Q-A2). Logins sorted by time, ties by login ID. Mapping in force from start (inclusive) to end (exclusive), checked on a lone mapping. Bad rows rejected with exact line, ID and reason; unparseable and number-only times rejected. Missing file, missing or wrong header, empty, invalid or overlapping IP table stop the run. No assessment module uses `Truth`, imports the service or names truth outside docstrings. | Green |
-| Mutation: INV-6 cut-off | INV-6 | `at < valid_to` changed to `<=`: 2 tests failed (12:00 lookup, `L-0722`); reverted, verify green. | Done |
-| Mutation: INV-7 abstain | INV-7 | Clearing on minimum speed instead of maximum: `L-0402` failed; reverted, verify green. | Done |
-| Mutation: INV-5 isolation | INV-5 | `Truth` imported into `policy.py`, and separately `models.Truth` used: the structural test failed for `policy` each time; reverted, verify green. | Done |
-| Mutation: time order | Q5 g, AC-08 | Removing the sort by (time, login ID): the ordering test failed; reverted, verify green. | Done |
-| Independent review: assessment | INV-1 to INV-8 | No high-severity findings. Accepted and fixed: untested sort and tie-break, narrow truth-isolation test, file-order-dependent boundary test, untested open-ended overlap. Owner decisions: wrong header stops the run; first valid row wins for duplicates; times parsed strictly as ISO-8601 (number-only times were accepted before). One finding rejected (import order: checked, passing). | Done |
-| `tests/test_evaluation.py`, `test_run.py`, `test_api.py` (37 tests) | AC-13 to AC-18, INV-4, INV-5, INV-7 | Exact AC-13 metrics and breakdown by planted scenario; null when undefined; logins not assessed and decisions with no truth counted separately. Full seed 42 demo has 0 false clears. One `run_complete` JSON line per run, whose `run_at` is identical in `run_summary`, `evaluation.json` (which also names seed and policy version) and `/health`; each successful run adds a `run_summary` row, and `/health` and `evaluation.json` both report the newest (an older run is inserted first, so dropping the sort would very likely, though not certainly, fail the tests); a run whose `run_at` is not later than the newest stored run (same second, or clock gone backwards) is refused, logged and leaves the previous run in place; evaluating with no completed run stops with a clear error; every failure, expected or not, logs `run_stopped` with its cause. A failed results write rolls back and keeps the previous run. Processing works with truth deleted. `/health` 503 with a reason when missing, empty or damaged, 200 with run details after; `/assessments` returns every stored field exactly as assessed, 404 unknown; all times end in Z; the API works with the database read-only on disk; the API and `process` never touch truth. | Green |
-| Mutation: INV-5 in processing | INV-5 | `process` made to load `truth.csv`: 2 tests failed; reverted, verify green. | Done |
-| Mutation: AC-13 recall | AC-13, INV-7 | Recall counted over decided logins only: test failed (1.0 instead of 0.5); reverted, verify green. | Done |
-| Mutation: read-only API | AC-15, AC-16 | `read_only=True` removed: read-only test failed; reverted, verify green. | Done |
-| Mutation: run order check | AC-17 | Order check disabled: both refusal cases (same second, clock backwards) failed; reverted (file identical), verify green. | Done |
-| Mutation: results transaction | AC-15, AC-17 | Transaction removed: rollback test failed; reverted, verify green. | Done |
-| Independent review: service | INV-1 to INV-8 | No rule breaches. Owner also raised five issues. Fixed: unlogged failures, writes not all-or-nothing, damaged database gave 500, `run_at` not in Z, decisions without truth scored as genuine, an over-claiming docstring, COPY columns by position, path quoting, weak API truth test, untested read-only access, unordered output. Run linkage review (owner items 6 to 9): `run_at` not unique, so out-of-order runs are now refused (owner decision); added a test that evaluation names the newest run; stale docstring; AC IDs in test names; one time-conversion path. | Done |
-| `make demo` and `make serve`, run by hand | AC-18 | Demo: 4,480 logins, 10 flags, 4,340 clears, 130 abstains, precision 1.0, recall 1.0, 0 false clears. API answered `/health`, a flagged login and a 404. | Done |
-| CI (`.github/workflows/verify.yml`) | Same check off the developer machine | The pushed code passes `make verify` on a clean machine from the lock file. First run on `a934734`: lint, format and 26 tests passed. | Green |
+| Contracts (`test_contracts.py`) | AC-09, AC-11 (model and config parts), INV-1, INV-4, INV-6 | Config loads, or stops with an error naming the file and every problem. Login rows need a time with a UTC offset and a valid IP. IP mapping windows are well formed. Times stay UTC through the database whatever the machine's time zone. Fixtures use documentation-only IPs. | 20 |
+| Generator (`test_generator.py`) | AC-01, INV-1, INV-3, INV-4, INV-5 | The same seed gives byte-identical files, checked against a checksum computed in a separate process; another seed differs. One truth label per login, kept out of the inputs. All four scenarios appear. On four seeds, using a distance formula written in the test, every planted jump is at least 3,000 km in 30 to 90 minutes, and every genuine non-VPN login is reachable at 1,000 km/h. | 21 |
+| Assessment (`test_ingest.py`, `test_enrichment.py`, `test_policy.py`) | AC-02 to AC-12, INV-4 to INV-7 | All 20 hand-written fixture logins get the expected decision, reason and speed range. Threshold boundaries. Each login uses the IP mapping in force at its own time (start inclusive, end exclusive). Bad rows are rejected with line, ID and reason; broken reference data stops the run. No assessment code uses truth. | 53 |
+| Service (`test_evaluation.py`, `test_run.py`, `test_api.py`) | AC-13 to AC-18, INV-4, INV-5, INV-7 | Exact AC-13 metrics, including by planted scenario. Seed 42 gives 0 false clears. One JSON log line per run; every failure logs its cause. A failed write keeps the previous results. Each run is linked by its `run_at` time across the log, the database, `evaluation.json` and `/health`; an out-of-order run is refused. `/health` returns 503 with a reason when not ready; `/assessments` returns the stored decision, or 404. The API works with the database read-only. Processing and the API never touch truth. | 37 |
+| Commit gate (`test_commit_gate.py`) | Commit rules in `AGENTS.md` | Each message rule rejects a message that breaks it; message forms the gate cannot read are blocked. | 25 |
+| Package (`test_package.py`) | none | The tooling runs against the installed package. | 1 |
+
+## Deliberate breaks
+
+Each was actually run, made the named test fail, and was reverted with `make verify` green again.
+
+| Rule | Break | Result |
+|---|---|---|
+| INV-4 UTC times | Stored run time switched to a type that follows the machine's time zone (`TIMESTAMPTZ`) | Round-trip test failed |
+| INV-5 truth isolation | `suspicious` column added to `logins.csv` | Truth-not-in-inputs test failed |
+| INV-5 | `Truth` imported into the decision rule, two different ways | Structural test failed each time |
+| INV-5 | Processing made to read `truth.csv` | 2 tests failed |
+| INV-6 time cut-off | Mapping end made inclusive (`<` changed to `<=`) | 2 tests failed |
+| INV-7 abstention | Clear decided on the minimum speed instead of the maximum | Fixture `L-0402` failed |
+| AC-08 ordering | Sort by time and login ID removed | Ordering test failed |
+| AC-13 recall | Recall counted over decided logins only | Test failed (1.0 instead of 0.5) |
+| AC-15, AC-16 read-only API | Read-only database flag removed | Read-only test failed |
+| AC-15, AC-17 all-or-nothing write | Transaction removed | Rollback test failed |
+| AC-17 run order | Order check disabled | Both refusal tests failed |
+
+The tooling was broken on purpose too: an unused import made the commit gate block the commit, and an unlisted dependency made the lock check fail.
+
+## Independent reviews
+
+A separate read-only reviewer checked each stage containing logic against INV-1 to INV-8. The owner accepted or rejected each finding.
+
+- **Generator:** no rule breaches. Six test weaknesses found and fixed, for example a reachability test that could pass on home logins alone.
+- **Assessment:** no high-severity findings. Four test gaps fixed; one finding rejected after checking. Owner decisions: a wrong header stops the run, the first valid row wins for duplicates, and times are parsed strictly.
+- **Service:** no rule breaches. The owner also put nine issues to the build, chosen from a separate review session's list, including unlogged failures, a write that was not all-or-nothing, a server error instead of 503, decisions without truth scored as genuine, and runs that could not be linked for audit. Eight were fixed and tested; the seed limitation is documented.
+
+## Other checks
+
+- **Lint and format (`ruff`):** no undefined names, unused imports or common bug patterns; one consistent format.
+- **Lock check (`--locked`):** dependencies must match the lock file, so nothing is added without approval.
+- **Commit gate:** blocks an agent commit if its message breaks the conventions or `make verify` fails.
+- **CI:** the same `make verify` on a clean machine, from the lock file. It has passed on every push (latest checked: `c00cfaa`).
+- **By hand:** `make demo` gave 4,480 logins, 10 flags, 4,340 clears, 130 abstains and 0 false clears. The API answered `/health`, a flagged login and a 404.
 
 ## Known gaps
 
-- The import test proves only that the tooling runs. Product behaviour is not yet tested; AC tests arrive with each component.
-- The commit gate covers commits made by the agent only. Commits the owner makes in their own terminal are not gated; CI is the backstop.
-- The imperative-mood check only catches common past and present forms ("Added", "Adding"); it cannot prove a verb is imperative.
-- The gate matches `git ... commit` by pattern. An unusual command form could slip past it; CI still catches the failure after push.
+**Limits on what the results show**
 
-- AC-14 is met by construction on generated data: every generated login is clearly a flag, clearly a clear, or VPN, so the `inconclusive` path is never reached there. That path is covered by the hand-written fixtures (AC-04), not by generated data.
-- The generator spaces genuine logins for 1,000 km/h, the same figure as policy v1. It deliberately does not read the policy. A lower threshold could make some genuine trips abstain.
-- Byte-identical generated output is promised on Python 3.12 only (`.python-version`); Python does not promise identical random sequences across versions.
-- Trips near the end of the period can run a few days past the 30-day window. Harmless; nothing assumes the window.
+- AC-14 (no false clears) holds by construction on generated data: every generated login is clearly possible, clearly impossible, or VPN. The "inconclusive" path is tested only with hand-written fixtures (AC-04).
+- The generator spaces genuine travel for 1,000 km/h, the same as policy v1. It deliberately does not read the policy, so a lower threshold could make some genuine trips abstain.
+- The runtime truth-isolation test (AC-12) passes by construction, because assessment is never given truth. The structural test, which fails if assessment code refers to truth, is the main control.
+- Truth is kept apart by code and tests, not by file permissions: `truth.csv` sits in the folder that processing reads.
 
-- AC-12's runtime test is true by construction: assessment is never given a truth path. The structural test is the main INV-5 control.
-- A bad login row reports only its first problem.
-- The IP overlap check runs when the table is loaded; the service must pass `load_ip_locations` output to `assess`.
-- A login row with more values than the header is not tested.
+**Process controls**
 
-- The test client prints a deprecation warning suggesting `httpx2`; not adopted (new dependency, tests only).
-- Truth separation for processing is by convention: `truth.csv` sits in the same folder that `process` reads, which is enforced by tests, not by file permissions.
-- `make serve` reads `config/settings.yaml` relative to the current folder, so it must run from the repository root.
-- The API's data access lives inside `create_app`, so it is tested through the API rather than as separate functions.
+- The commit gate covers only commits made by the agent; the owner's own commits rely on CI. It recognises commit commands by pattern, so an unusual form could slip past, and its imperative-mood check catches common forms only.
 
-## Local versus pull request versus pipeline
+**Minor**
+
+- A run keeps rejected-row counts by reason, not each row's line and ID.
+- A bad login row reports only its first problem. A row with more values than the header is not tested.
+- Identical output for the same seed is promised on Python 3.12 only (pinned).
+- The newest-run tests insert an older run first, so they would very likely, though not certainly, catch a missing sort.
+- `make serve` must run from the repository root.
+- The test client prints a deprecation warning; fixing it needs a new dependency, so it was left.
+
+## Local, pull request and pipeline
 
 - **Local:** `make verify` on demand, and automatically before each agent commit.
-- **Pull request and push:** CI runs `uv sync --locked` then `make verify` on every push and pull request.
-- **Pipeline:** no deployment pipeline. In production this check would gate merges to the protected main branch.
+- **Push and pull request:** CI runs `uv sync --locked` then `make verify`.
+- **Pipeline:** none deployed. In production this check would gate merges to the protected main branch, followed by the promotion steps in `operate.md`.

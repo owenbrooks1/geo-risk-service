@@ -12,6 +12,13 @@ This service assesses each login for impossible travel using only evidence avail
 - **Risk and model owners:** need the decision rule, its version, and how it performs, including false clears and abstain rates.
 - **Auditors:** need reproducible decisions. The same data, seed and policy version always give the same results.
 
+## Terms
+
+- **Flag, clear, abstain:** the three possible decisions. Flag means the travel looks impossible; clear means it was possible; abstain means the evidence cannot decide either way.
+- **Baseline:** the customer's most recent earlier login with a usable location, which the new login is compared with.
+- **Accuracy radius:** how far, in kilometres, the true location may be from the point an IP address maps to.
+- **Hidden truth:** the generator's record of which logins were planted as suspicious. Used only to score the decisions.
+
 ## Workflow
 
 1. **Generate** a seeded synthetic dataset: customers, logins (UTC time and IP), an IP geolocation table, and hidden truth.
@@ -32,13 +39,25 @@ The threshold is 1,000 km/h, held in versioned policy config.
 
 1. Logins arrive as a complete batch. There is no real-time stream (see decisions).
 2. The IP geolocation table is trusted as given, apart from its own accuracy radius and connection type.
-3. Distance is great-circle distance on a 6,371 km Earth radius.
+3. Distance is great-circle distance (the shortest path over the Earth's surface), using a 6,371 km Earth radius.
 4. 1,000 km/h is a policy setting, not a fact, and it is versioned.
 5. The output is a risk **indicator** for people and downstream systems to use. The service does not block logins, recommend actions or contact customers.
 
 ## Constraints
 
-The hard rules INV-1 to INV-8 are defined in `AGENTS.md`.
+- **Exercise:** a 3-hour timebox; runs locally from the repository; no paid API keys or private credentials; synthetic data only; one command runs every check.
+- **Hard rules** (full wording in `AGENTS.md`; tests cite them by ID):
+
+| ID | Rule, in short |
+|---|---|
+| INV-1 | Synthetic data only. |
+| INV-2 | No network calls or credentials, in the service or its tests. |
+| INV-3 | The same seed always gives the same data. |
+| INV-4 | Times are UTC; distances are kilometres. |
+| INV-5 | Decisions never see the hidden truth; it is used only to score them. |
+| INV-6 | No evidence from after a login can be used to judge it. |
+| INV-7 | Weak evidence abstains; it never produces a reassuring answer. |
+| INV-8 | Each material behaviour has a test that fails if it breaks. |
 
 ## Out of scope
 
@@ -57,7 +76,7 @@ The hard rules INV-1 to INV-8 are defined in `AGENTS.md`.
 
 ## Success criteria
 
-Tests cite these IDs. Fixtures are small hand-written cases in `examples/`, with answers worked out before any code. Speeds come from great-circle distance and 25 km radii unless stated. Status values: draft, agreed, built.
+Tests cite these IDs. Fixtures are small hand-written cases in `examples/`, with answers worked out before any code. Speeds come from great-circle distance and 25 km radii unless stated. Status values: draft, agreed, built, cut (not built). All 18 CORE criteria are built; the ENHANCE criteria were not built, to fit the timebox.
 
 | ID | Band | Criterion | Known answer | Status |
 |---|---|---|---|---|
@@ -73,13 +92,13 @@ Tests cite these IDs. Fixtures are small hand-written cases in `examples/`, with
 | AC-10 | CORE | Empty input | 0 logins: 0 assessed, 0 rejected, no error. | built |
 | AC-11 | CORE | Missing reference data or config stops the run | Missing or empty IP table, or one IP with two mappings in force at the same moment: run stops with a clear error. Policy with a negative threshold or no version: stops before assessing. | built |
 | AC-12 | CORE | Truth isolation (INV-5) | Processing with the truth table removed gives identical decisions. | built |
-| AC-13 | CORE | Evaluation metrics are exact, and abstaining never improves them | 2 flagged (1 suspicious), 3 cleared (all genuine), 1 abstained (suspicious): precision 0.5, recall 0.5 (out of all 2 suspicious logins, so an abstain counts as a miss), false clears 0, abstain rate 1/6, suspicious logins abstained 1. Recall among decided logins only (1.0) may be shown, labelled as secondary. By scenario: impossible jump 1 flag and 1 abstain; genuine travel 1 flag and 1 clear; normal 2 clears (added at owner request after the service stage). | built |
+| AC-13 | CORE | Evaluation metrics are exact, and abstaining never improves them | Six logins: 2 flagged (1 suspicious), 3 cleared (all genuine), 1 abstained (suspicious). Precision 0.5; recall 0.5, because an abstain counts as a miss; false clears 0; abstain rate 1/6; suspicious logins abstained 1. Recall over decided logins only (1.0) may be shown, labelled secondary. By scenario: impossible jump 1 flag and 1 abstain; genuine travel 1 flag and 1 clear; normal 2 clears. | built |
 | AC-14 | CORE | No false clears on planted scenarios (INV-7) | Seed 42: false clears = 0. Scenarios are not tuned to make this pass. It shows the policy behaves as designed on the planted scenarios, not how it would perform on real logins. | built |
 | AC-15 | CORE | `GET /health` | Before a run: not ready, with the reason. After `make demo`: ready, with policy version, seed and counts, for the newest run in `run_summary`. | built |
 | AC-16 | CORE | `GET /assessments/{login_id}` | Known ID: decision, reason, evidence and policy version. Unknown ID: 404. | built |
-| AC-17 | CORE | Run logging | Each run logs one summary: seed, policy version, loaded, rejected by reason, decisions by outcome. A stopped run logs the cause (for example, the missing IP table path). The summary's `run_at` matches the stored run and `evaluation.json`, which names the seed and policy version it scored (owner review). | built |
+| AC-17 | CORE | Run logging | Each run logs one summary: run time, seed, policy version, rows loaded, rejected by reason, decisions by outcome. A stopped run logs the cause (for example, the missing IP table path). The run time is the same in the log, the stored run, `evaluation.json` and `/health`. | built |
 | AC-18 | CORE | One-command demo | From a clean checkout, `uv sync` then `make demo` generates, processes and evaluates, and prints the evaluation report. `make serve` then starts the API over those results. The README shows a real example request and response. | built |
-| AC-19 | ENHANCE | `GET /assessments` filters | `decision=maybe`: 422. Limit above the cap: 422. | agreed |
-| AC-20 | ENHANCE | `GET /evaluation` | Returns the AC-13 metrics. Never includes per-login truth. | agreed |
-| AC-21 | ENHANCE | Order independence | The same fixture in shuffled order gives identical decisions. | agreed |
-| AC-22 | ENHANCE | `POST /assess` | Assesses one new login live against stored history. Invalid body: 422. | draft |
+| AC-19 | ENHANCE | `GET /assessments` filters | `decision=maybe`: 422. Limit above the cap: 422. | cut (not built) |
+| AC-20 | ENHANCE | `GET /evaluation` | Returns the AC-13 metrics. Never includes per-login truth. | cut (not built) |
+| AC-21 | ENHANCE | Order independence | The same fixture in shuffled order gives identical decisions. | cut (not built) |
+| AC-22 | ENHANCE | `POST /assess` | Assesses one new login live against stored history. Invalid body: 422. | cut (not built) |
